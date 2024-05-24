@@ -210,3 +210,18 @@ bool skywatcher_set_motion_mode_tracking(enum skywatcher_axis axis, enum skywatc
     }
     return is_ok;
 }
+
+void skywatcher_print_mode(char* buffer, size_t buffer_size, enum skywatcher_mode mode)
+{
+    snprintf(buffer, buffer_size, "%s", mode == SM_GOTO ? "goto" : "tracking");
+}
+
+void skywatcher_print_direction(char* buffer, size_t buffer_size, enum skywatcher_direction direction)
+{
+    snprintf(buffer, buffer_size, "%s", direction == SD_CW ? "cw" : "ccw");
+}
+
+void skywatcher_print_speed_mode(char* buffer, size_t buffer_size, enum skywatcher_speed_mode speed_mode)
+{
+    snprintf(buffer, buffer_size, "%s", speed_mode == SSM_SLOW ? "slow" : "fast");
+}
