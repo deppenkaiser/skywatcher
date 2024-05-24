@@ -174,7 +174,7 @@ bool skywatcher_get_axis_position(int32_t* position, enum skywatcher_axis axis)
     return is_ok;
 }
 
-bool skywatcher_get_axis_status(skywatcher_status_t status, enum skywatcher_axis axis)
+bool skywatcher_get_axis_status(skywatcher_axis_status_t status, enum skywatcher_axis axis)
 {
     bool is_ok = false;
     if (axis != SA_BOTH)
@@ -195,12 +195,12 @@ bool skywatcher_get_axis_status(skywatcher_status_t status, enum skywatcher_axis
     return is_ok;
 }
 
-bool skywatcher_set_motion_mode_tracking(enum skywatcher_axis axis, bool cw)
+bool skywatcher_set_motion_mode_tracking(enum skywatcher_axis axis, enum skywatcher_direction direction)
 {
     bool is_ok = false;
     string_t buffer = {0};
 
-    snprintf(buffer, sizeof(buffer), ":G%d%d%d\r", axis, BIT_0 | BIT_1, cw ? 0 : BIT_0);
+    snprintf(buffer, sizeof(buffer), ":G%d%d%d\r", axis, BIT_0 | BIT_1, direction);
     if (socket_send(_socket, buffer, strlen(buffer)))
     {
         memset(buffer, 0, sizeof(buffer));
