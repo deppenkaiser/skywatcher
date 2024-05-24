@@ -47,3 +47,4 @@ bool skywatcher_set_motion_mode_tracking(enum skywatcher_axis axis, enum skywatc
 void skywatcher_print_mode(char* buffer, size_t buffer_size, enum skywatcher_mode mode);
 void skywatcher_print_direction(char* buffer, size_t buffer_size, enum skywatcher_direction direction);
 void skywatcher_print_speed_mode(char* buffer, size_t buffer_size, enum skywatcher_speed_mode speed_mode);
+void skywatcher_handle_arrow_keys(uint32_t key_value);

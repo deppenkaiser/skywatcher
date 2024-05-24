@@ -1,6 +1,8 @@
 #include "skywatcher.h"
 
 #include <stdio.h>
+#include <gtk/gtk.h>
+#include <logging/logging.h>
 
 #define BIT_0 1
 #define BIT_1 2
@@ -224,4 +226,26 @@ void skywatcher_print_direction(char* buffer, size_t buffer_size, enum skywatche
 void skywatcher_print_speed_mode(char* buffer, size_t buffer_size, enum skywatcher_speed_mode speed_mode)
 {
     snprintf(buffer, buffer_size, "%s", speed_mode == SSM_SLOW ? "slow" : "fast");
+}
+
+void skywatcher_handle_arrow_keys(uint32_t key_value)
+{
+    switch (key_value)
+    {
+        case GDK_KEY_Left:
+            logging_log_message("mount move left", true);
+            break;
+
+        case GDK_KEY_Right:
+            logging_log_message("mount move right", true);
+            break;
+            
+        case GDK_KEY_Up:
+            logging_log_message("mount move north", true);
+            break;
+            
+        case GDK_KEY_Down:
+            logging_log_message("mount move south", true);
+            break;            
+    }
 }
