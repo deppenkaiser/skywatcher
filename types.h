@@ -25,9 +25,32 @@ enum skywatcher_speed_mode
     SSM_FAST = 1
 };
 
+enum skywatcher_axis_action
+{
+    SAA_STOPPED = 0,
+    SAA_RUNNING = 1
+};
+
+enum skywatcher_init_state
+{
+    SIS_NOT_INIT = 0,
+    SIS_DONE = 1
+};
+
+enum skywatcher_auto_guide_speed
+{
+    AGS_NORMAL = 0,
+    AGS_SLOWER = 1,
+    AGS_HALF = 2,
+    AGS_QUARTER = 3,
+    AGS_SLOW = 4
+};
+
 typedef struct skywatcher_axis_status
 {
     enum skywatcher_mode mode;
     enum skywatcher_direction direction;
     enum skywatcher_speed_mode speed;
+    enum skywatcher_axis_action action;
+    enum skywatcher_init_state init_state;
 } *skywatcher_axis_status_t;
