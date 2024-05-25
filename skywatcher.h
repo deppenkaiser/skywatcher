@@ -36,7 +36,7 @@ typedef struct skywatcher_axis_status
     enum skywatcher_speed_mode speed;
 } *skywatcher_axis_status_t;
 
-bool skywatcher_initialize();
+bool skywatcher_initialize(const char* ip);
 void skywatcher_uninitialize();
 bool skywatcher_instant_stop(enum skywatcher_axis axis);
 bool skywatcher_start_motion(enum skywatcher_axis axis);

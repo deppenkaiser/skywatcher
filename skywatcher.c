@@ -15,10 +15,10 @@
 
 socket_handle_t _socket = SOCKET_INVALID_SOCKET;
 
-bool skywatcher_initialize()
+bool skywatcher_initialize(const char* ip)
 {
     _socket = socket_create_socket(1, false);
-    return socket_connect(_socket, "192.168.0.51", 11880);
+    return socket_connect(_socket, ip, 11880);
 }
 
 void skywatcher_uninitialize()
