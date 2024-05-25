@@ -22,6 +22,8 @@
 
 socket_handle_t _socket = SOCKET_INVALID_SOCKET;
 uint32_t _counts_per_revolution[AXIS_COUNT] = {0};
+int32_t _position[AXIS_COUNT] = {0};
+int32_t _axis_position[AXIS_COUNT] = {0};
 uint32_t _timer_frequency = 0;
 
 bool _skywatcher_initialize_axis(enum skywatcher_axis axis);
@@ -199,9 +201,12 @@ bool skywatcher_initialize_axis()
         }
     }
 
-    is_ok = _skywatcher_initialize_axis(SA_AXIS_DEC_ALT_2);
-    is_ok = is_ok && _skywatcher_get_axis_counts_per_revolution(&_counts_per_revolution[SA_AXIS_RA_AZ_1 - 1], SA_AXIS_RA_AZ_1);
+    is_ok = _skywatcher_get_axis_counts_per_revolution(&_counts_per_revolution[SA_AXIS_RA_AZ_1 - 1], SA_AXIS_RA_AZ_1);
     is_ok = is_ok && _skywatcher_get_axis_counts_per_revolution(&_counts_per_revolution[SA_AXIS_DEC_ALT_2 - 1], SA_AXIS_DEC_ALT_2);
+    is_ok = is_ok && skywatcher_get_position(&_position[SA_AXIS_RA_AZ_1 - 1], SA_AXIS_RA_AZ_1);
+    is_ok = is_ok && skywatcher_get_position(&_position[SA_AXIS_DEC_ALT_2 - 1], SA_AXIS_DEC_ALT_2);
+    is_ok = is_ok && skywatcher_get_axis_position(&_axis_position[SA_AXIS_RA_AZ_1 - 1], SA_AXIS_RA_AZ_1);
+    is_ok = is_ok && skywatcher_get_axis_position(&_axis_position[SA_AXIS_DEC_ALT_2 - 1], SA_AXIS_DEC_ALT_2);
     is_ok = is_ok && _skywatcher_get_timer_frequency(&_timer_frequency);
     return is_ok;
 }
