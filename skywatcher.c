@@ -23,6 +23,9 @@
 #define CMD_SLEEP               ":B%d%d\r"
 #define CMD_GET_POSITION        ":j%d\r"
 #define CMD_SET_POSITION        ":E%dxxxxxx\r"
+#define CMD_GET_SPEED           ":i%d\r"
+#define CMD_SET_SPEED           ":I%dxxxxxx\r"
+#define CMD_SET_MOTION_MODE     ":G%dxx\r"
 #define CMD_GET_AXIS_POSITION   ":d%d\r"
 #define CMD_GET_BOARD_VERSION   ":e%d\r"
 #define CMD_GET_TIMER_FREQUENCY ":b1\r"
@@ -41,7 +44,7 @@ size_t _skywatcher_telegram(char* buffer, size_t bytes);
 bool _skywatcher_initialize_axis(enum skywatcher_axis axis);
 bool _skywatcher_get_motor_board_version(enum skywatcher_axis axis);
 bool _skywatcher_get_axis_status(enum skywatcher_axis axis);
-bool _skywatcher_get_cpr(enum skywatcher_axis axis);
+bool _skywatcher_get_cpr(enum skywatcher_axis axis, uint32_t* cpr);
 bool _skywatcher_get_timer_frequency();
 
 size_t _skywatcher_telegram(char* buffer, size_t bytes)
@@ -60,7 +63,9 @@ bool _skywatcher_initialize_axis(enum skywatcher_axis axis)
     memset(_buffer, 0, sizeof(_buffer));
     sprintf(_buffer, CMD_INIT, axis);
     _skywatcher_telegram(_buffer, strlen(_buffer));
-    return _buffer[0] != '!';
+    bool is_ok = _buffer[0] != '!';
+    memset(_buffer, 0, sizeof(_buffer));
+    return is_ok;
 }
 
 bool _skywatcher_get_motor_board_version(enum skywatcher_axis axis)
@@ -68,23 +73,53 @@ bool _skywatcher_get_motor_board_version(enum skywatcher_axis axis)
     memset(_buffer, 0, sizeof(_buffer));
     sprintf(_buffer, CMD_GET_BOARD_VERSION, axis);
     _skywatcher_telegram(_buffer, strlen(_buffer));
-    return _buffer[0] != '!';
+    bool is_ok = _buffer[0] != '!';
+    memset(_buffer, 0, sizeof(_buffer));
+    return is_ok;
 }
 
-bool _skywatcher_get_timer_frequency()
+bool _skywatcher_get_timer_frequency(uint32_t* frequency)
 {
+    char value[16] = {0};
     memset(_buffer, 0, sizeof(_buffer));
     sprintf(_buffer, CMD_GET_TIMER_FREQUENCY);
     _skywatcher_telegram(_buffer, strlen(_buffer));
-    return _buffer[0] != '!';
+    bool is_ok = _buffer[0] != '!';
+    if (is_ok)
+    {
+        char* endptr = NULL;
+        value[4] = _buffer[1];
+        value[5] = _buffer[2];
+        value[2] = _buffer[3];
+        value[3] = _buffer[4];
+        value[0] = _buffer[5];
+        value[1] = _buffer[6];
+        *frequency = strtol(value, &endptr, 16);
+    }
+    memset(_buffer, 0, sizeof(_buffer));
+    return is_ok;
 }
 
-bool _skywatcher_get_cpr(enum skywatcher_axis axis)
+bool _skywatcher_get_cpr(enum skywatcher_axis axis, uint32_t* cpr)
 {
+    char value[16] = {0};
     memset(_buffer, 0, sizeof(_buffer));
     sprintf(_buffer, CMD_GET_CPR, axis);
     _skywatcher_telegram(_buffer, strlen(_buffer));
-    return _buffer[0] != '!';
+    bool is_ok = _buffer[0] != '!';
+    if (is_ok)
+    {
+        char* endptr = NULL;
+        value[4] = _buffer[1];
+        value[5] = _buffer[2];
+        value[2] = _buffer[3];
+        value[3] = _buffer[4];
+        value[0] = _buffer[5];
+        value[1] = _buffer[6];
+        *cpr = strtol(value, &endptr, 16);
+    }
+    memset(_buffer, 0, sizeof(_buffer));
+    return is_ok;
 }
 
 bool _skywatcher_get_axis_status(enum skywatcher_axis axis)
@@ -92,23 +127,9 @@ bool _skywatcher_get_axis_status(enum skywatcher_axis axis)
     memset(_buffer, 0, sizeof(_buffer));
     sprintf(_buffer, CMD_STATUS, axis);
     _skywatcher_telegram(_buffer, strlen(_buffer));
-    return _buffer[0] != '!';
-}
-
-bool _skywatcher_set_axis_sleep(enum skywatcher_axis axis, bool sleep)
-{
+    bool is_ok = _buffer[0] != '!';
     memset(_buffer, 0, sizeof(_buffer));
-    sprintf(_buffer, CMD_SLEEP, axis, sleep ? SAS_BLOCKED : SAS_NORMAL);
-    _skywatcher_telegram(_buffer, strlen(_buffer));
-    return _buffer[0] != '!';
-}
-
-bool _skywatcher_instant_stop(enum skywatcher_axis axis)
-{
-    memset(_buffer, 0, sizeof(_buffer));
-    sprintf(_buffer, CMD_INSTANT_STOP, axis);
-    _skywatcher_telegram(_buffer, strlen(_buffer));
-    return _buffer[0] != '!';
+    return is_ok;
 }
 
 /*------------------------------------------------- PUBLIC ------------------------------------------------------*/
@@ -126,34 +147,11 @@ void skywatcher_close()
 
 bool skywatcher_initialize_axis()
 {
-    char value[16] = {0};
-    char* endptr = NULL;
     bool is_ok = _skywatcher_initialize_axis(SA_AXIS_1);
     is_ok = is_ok && _skywatcher_initialize_axis(SA_AXIS_2);
-    is_ok = is_ok && _skywatcher_get_timer_frequency();
-    value[4] = _buffer[1];
-    value[5] = _buffer[2];
-    value[2] = _buffer[3];
-    value[3] = _buffer[4];
-    value[0] = _buffer[5];
-    value[1] = _buffer[6];
-    _timer_frequency = strtol(value, &endptr, 16);
-    is_ok = is_ok && _skywatcher_get_cpr(SA_AXIS_1);
-    value[4] = _buffer[1];
-    value[5] = _buffer[2];
-    value[2] = _buffer[3];
-    value[3] = _buffer[4];
-    value[0] = _buffer[5];
-    value[1] = _buffer[6];
-    _cpr[SA_AXIS_1] = strtol(value, &endptr, 16);
-    is_ok = is_ok && _skywatcher_get_cpr(SA_AXIS_2);
-    value[4] = _buffer[1];
-    value[5] = _buffer[2];
-    value[2] = _buffer[3];
-    value[3] = _buffer[4];
-    value[0] = _buffer[5];
-    value[1] = _buffer[6];
-    _cpr[SA_AXIS_2] = strtol(value, &endptr, 16);
+    is_ok = is_ok && _skywatcher_get_timer_frequency(&_timer_frequency);
+    is_ok = is_ok && _skywatcher_get_cpr(SA_AXIS_1, &_cpr[SA_AXIS_1]);
+    is_ok = is_ok && _skywatcher_get_cpr(SA_AXIS_2, &_cpr[SA_AXIS_2]);
 
     is_ok = is_ok && _skywatcher_get_motor_board_version(SA_AXIS_1);
     logging_log_message(_buffer[3] == '0' ? "board axis 1: eq" : "board axis 1: az", true);
@@ -161,6 +159,46 @@ bool skywatcher_initialize_axis()
     is_ok = is_ok && _skywatcher_get_motor_board_version(SA_AXIS_2);
     logging_log_message(_buffer[3] == '0' ? "board axis 2: eq" : "board axis 2: az", true);
 
+    return is_ok;
+}
+
+bool skywatcher_set_axis_sleep(enum skywatcher_axis axis, bool sleep)
+{
+    memset(_buffer, 0, sizeof(_buffer));
+    sprintf(_buffer, CMD_SLEEP, axis, sleep ? SAS_BLOCKED : SAS_NORMAL);
+    _skywatcher_telegram(_buffer, strlen(_buffer));
+    bool is_ok = _buffer[0] != '!';
+    memset(_buffer, 0, sizeof(_buffer));
+    return is_ok;
+}
+
+bool skywatcher_start_motion(enum skywatcher_axis axis)
+{
+    memset(_buffer, 0, sizeof(_buffer));
+    sprintf(_buffer, CMD_START_MOTION, axis);
+    _skywatcher_telegram(_buffer, strlen(_buffer));
+    bool is_ok = _buffer[0] != '!';
+    memset(_buffer, 0, sizeof(_buffer));
+    return is_ok;
+}
+
+bool skywatcher_stop_motion(enum skywatcher_axis axis)
+{
+    memset(_buffer, 0, sizeof(_buffer));
+    sprintf(_buffer, CMD_START_MOTION, axis);
+    _skywatcher_telegram(_buffer, strlen(_buffer));
+    bool is_ok = _buffer[0] != '!';
+    memset(_buffer, 0, sizeof(_buffer));
+    return is_ok;
+}
+
+bool skywatcher_instant_stop(enum skywatcher_axis axis)
+{
+    memset(_buffer, 0, sizeof(_buffer));
+    sprintf(_buffer, CMD_INSTANT_STOP, axis);
+    _skywatcher_telegram(_buffer, strlen(_buffer));
+    bool is_ok = _buffer[0] != '!';
+    memset(_buffer, 0, sizeof(_buffer));
     return is_ok;
 }
 
@@ -193,38 +231,105 @@ bool skywatcher_get_position(enum skywatcher_axis axis, int32_t* position)
     value[1] = _buffer[6];
     char* endptr = NULL;
     *position = strtol(value, &endptr, 16) - POSITION_OFFSET;
-    return _buffer[0] != '!';
+    bool is_ok = _buffer[0] != '!';
+    memset(_buffer, 0, sizeof(_buffer));
+    return is_ok;
+}
+
+bool skywatcher_set_motion_mode(enum skywatcher_axis axis, bool tracking, bool fast, bool cw, bool north)
+{
+    char value[16] = {0};
+    memset(_buffer, 0, sizeof(_buffer));
+    sprintf(_buffer, CMD_SET_MOTION_MODE, axis);
+    sprintf(value, "%x", BIT_2 | BIT_0);
+    _buffer[3] = value[0];
+    sprintf(value, "%x", BIT_0);
+    _buffer[4] = value[0];
+    _skywatcher_telegram(_buffer, strlen(_buffer));
+    bool is_ok = _buffer[0] != '!';
+    memset(_buffer, 0, sizeof(_buffer));
+    return is_ok;
+}
+
+bool skywatcher_get_speed(enum skywatcher_axis axis, double* angular_speed_degrees_per_s)
+{
+    bool is_ok = false;
+    char value[16] = {0};
+    memset(_buffer, 0, sizeof(_buffer));
+    sprintf(_buffer, CMD_GET_SPEED, axis);
+    _skywatcher_telegram(_buffer, strlen(_buffer));
+    value[4] = _buffer[1];
+    value[5] = _buffer[2];
+    value[2] = _buffer[3];
+    value[3] = _buffer[4];
+    value[0] = _buffer[5];
+    value[1] = _buffer[6];
+    char* endptr = NULL;
+    uint32_t preset = strtol(value, &endptr, 16);
+    double counts_per_s = _timer_frequency / (double) preset;
+    *angular_speed_degrees_per_s = counts_per_s * 360.0 / (double) _cpr[axis];
+    is_ok = _buffer[0] != '!';
+    memset(_buffer, 0, sizeof(_buffer));
+    return is_ok;
+}
+
+bool skywatcher_set_speed(enum skywatcher_axis axis, double angular_speed_degrees_per_s)
+{
+    bool is_ok = false;
+    if (angular_speed_degrees_per_s != 0.0)
+    {
+        char value[16] = {0};
+        double counts_per_s = angular_speed_degrees_per_s * _cpr[axis] / 360.0;
+        double preset = _timer_frequency / counts_per_s;
+        memset(_buffer, 0, sizeof(_buffer));
+        sprintf(value, "%x", (int32_t) preset);
+        sprintf(_buffer, CMD_SET_SPEED, axis);
+        _buffer[3] = value[4] != 0 ? value[4] : '0';
+        _buffer[4] = value[5] != 0 ? value[5] : '0';
+        _buffer[5] = value[2] != 0 ? value[2] : '0';
+        _buffer[6] = value[3] != 0 ? value[3] : '0';
+        _buffer[7] = value[0] != 0 ? value[0] : '0';
+        _buffer[8] = value[1] != 0 ? value[1] : '0';
+        _skywatcher_telegram(_buffer, strlen(_buffer));
+        is_ok = _buffer[0] != '!';
+        memset(_buffer, 0, sizeof(_buffer));
+    }
+    return is_ok;
 }
 
 bool skywatcher_set_position(enum skywatcher_axis axis, int32_t position)
 {
-    char pos[16] = {0};
+    char value[16] = {0};
     memset(_buffer, 0, sizeof(_buffer));
-    sprintf(pos, "%x", position + POSITION_OFFSET);
+    sprintf(value, "%x", position + POSITION_OFFSET);
     sprintf(_buffer, CMD_SET_POSITION, axis);
-    _buffer[3] = pos[4];
-    _buffer[4] = pos[5];
-    _buffer[5] = pos[2];
-    _buffer[6] = pos[3];
-    _buffer[7] = pos[0];
-    _buffer[8] = pos[1];
+    _buffer[3] = value[4];
+    _buffer[4] = value[5];
+    _buffer[5] = value[2];
+    _buffer[6] = value[3];
+    _buffer[7] = value[0];
+    _buffer[8] = value[1];
     _skywatcher_telegram(_buffer, strlen(_buffer));
-    return _buffer[0] != '!';
+    bool is_ok = _buffer[0] != '!';
+    memset(_buffer, 0, sizeof(_buffer));
+    return is_ok;
 }
 
 bool skywatcher_get_axis_position(enum skywatcher_axis axis, int32_t* position)
 {
-    char pos[16] = {0};
+    char value[16] = {0};
     memset(_buffer, 0, sizeof(_buffer));
     sprintf(_buffer, CMD_GET_AXIS_POSITION, axis);
     _skywatcher_telegram(_buffer, strlen(_buffer));
-    pos[4] = _buffer[1];
-    pos[5] = _buffer[2];
-    pos[2] = _buffer[3];
-    pos[3] = _buffer[4];
-    pos[0] = _buffer[5];
-    pos[1] = _buffer[6];
+    value[4] = _buffer[1];
+    value[5] = _buffer[2];
+    value[2] = _buffer[3];
+    value[3] = _buffer[4];
+    value[0] = _buffer[5];
+    value[1] = _buffer[6];
     char* endptr = NULL;
-    *position = strtol(pos, &endptr, 16) - POSITION_OFFSET;
-    return _buffer[0] != '!';
+    *position = strtol(value, &endptr, 16) - POSITION_OFFSET;
+    bool is_ok = _buffer[0] != '!';
+    memset(_buffer, 0, sizeof(_buffer));
+    return is_ok;
 }

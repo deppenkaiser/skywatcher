@@ -19,7 +19,18 @@ int main(int argc, char **argv)
             is_ok = is_ok && skywatcher_get_position(SA_AXIS_2, &position_2);
             is_ok = is_ok && skywatcher_get_axis_position(SA_AXIS_1, &axis_position_1);
             is_ok = is_ok && skywatcher_get_axis_position(SA_AXIS_2, &axis_position_2);
-            is_ok = false;
+
+            //is_ok = is_ok && skywatcher_set_axis_sleep(SA_AXIS_1, false);
+            is_ok = is_ok && skywatcher_instant_stop(SA_AXIS_1);
+
+            double speed = 10.0;
+            is_ok = is_ok && skywatcher_set_speed(SA_AXIS_1, speed);
+            is_ok = is_ok && skywatcher_get_speed(SA_AXIS_1, &speed);
+
+            is_ok = is_ok && skywatcher_set_motion_mode(SA_AXIS_1, true, true, true, true);
+            is_ok = is_ok && skywatcher_start_motion(SA_AXIS_1);
+            is_ok = is_ok && skywatcher_stop_motion(SA_AXIS_1);
+            is_ok = is_ok && skywatcher_instant_stop(SA_AXIS_1);
         }
 
         skywatcher_close();
