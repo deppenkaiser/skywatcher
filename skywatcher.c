@@ -2,7 +2,6 @@
 
 #include <stdio.h>
 #include <ctype.h>
-#include <gtk/gtk.h>
 #include <logging/logging.h>
 #include <threading/threading.h>
 
@@ -18,142 +17,98 @@
 #define AXIS_COUNT 2
 #define POSITION_OFFSET 8388608
 
+#define CMD_INIT                ":F%d\r"
+#define CMD_STATUS              ":f%d\r"
+#define CMD_INSTANT_STOP        ":L%d\r"
+#define CMD_SLEEP               ":B%d%d\r"
+#define CMD_GET_POSITION        ":j%d\r"
+#define CMD_SET_POSITION        ":E%dxxxxxx\r"
+#define CMD_GET_AXIS_POSITION   ":d%d\r"
+#define CMD_GET_BOARD_VERSION   ":e%d\r"
+#define CMD_GET_TIMER_FREQUENCY ":b1\r"
+#define CMD_GET_CPR             ":a%d\r"
+#define CMD_START_MOTION        ":J%d\r"
+#define CMD_STOP_MOTION         ":K%d\r"
+
 /*------------------------------------------------- PRIVATE ------------------------------------------------------*/
 
 socket_handle_t _socket = SOCKET_INVALID_SOCKET;
-uint32_t _counts_per_revolution[AXIS_COUNT] = {0};
-int32_t _position[AXIS_COUNT] = {0};
-int32_t _axis_position[AXIS_COUNT] = {0};
+char _buffer[16] = {0};
 uint32_t _timer_frequency = 0;
+uint32_t _cpr[3] = {0};
 
+size_t _skywatcher_telegram(char* buffer, size_t bytes);
 bool _skywatcher_initialize_axis(enum skywatcher_axis axis);
-bool _skywatcher_start_motion(enum skywatcher_axis axis);
-bool _skywatcher_stop_motion(enum skywatcher_axis axis);
-bool _skywatcher_get_axis_counts_per_revolution(uint32_t* step_count, enum skywatcher_axis axis);
-bool _skywatcher_get_timer_frequency(uint32_t* frequency);
-double _skywatcher_calculate_speed_cps(enum skywatcher_axis axis, double angular_speed_degree_per_s);
-double _skywatcher_calculate_preset_value(enum skywatcher_axis axis, double angular_speed_degree_per_s);
+bool _skywatcher_get_motor_board_version(enum skywatcher_axis axis);
+bool _skywatcher_get_axis_status(enum skywatcher_axis axis);
+bool _skywatcher_get_cpr(enum skywatcher_axis axis);
+bool _skywatcher_get_timer_frequency();
+
+size_t _skywatcher_telegram(char* buffer, size_t bytes)
+{
+    size_t bytes_received = 0;
+    if (socket_send(_socket, buffer, strlen(buffer)))
+    {
+        memset(buffer, 0, sizeof(buffer));
+        bytes_received = socket_receive(_socket, buffer, sizeof(buffer));
+    }
+    return bytes_received;
+}
 
 bool _skywatcher_initialize_axis(enum skywatcher_axis axis)
 {
-    bool is_ok = false;
-    if (axis != SA_BOTH)
-    {
-        char buffer[64] = {0};
-        sprintf(buffer, ":F%d\r", axis);
-        if (socket_send(_socket, buffer, strlen(buffer)))
-        {
-            memset(buffer, 0, sizeof(buffer));
-            size_t received_bytes = socket_receive(_socket, buffer, sizeof(buffer));
-            is_ok = strcmp(buffer, "=\r") == 0;
-        }
-    }
-    return is_ok;
+    memset(_buffer, 0, sizeof(_buffer));
+    sprintf(_buffer, CMD_INIT, axis);
+    _skywatcher_telegram(_buffer, strlen(_buffer));
+    return _buffer[0] != '!';
 }
 
-bool _skywatcher_stop_motion(enum skywatcher_axis axis)
+bool _skywatcher_get_motor_board_version(enum skywatcher_axis axis)
 {
-    bool is_ok = false;
-    char buffer[64] = {0};
-    sprintf(buffer, ":K%d\r", axis);
-    if (socket_send(_socket, buffer, strlen(buffer)))
-    {
-        memset(buffer, 0, sizeof(buffer));
-        size_t received_bytes = socket_receive(_socket, buffer, sizeof(buffer));
-        is_ok = strcmp(buffer, "=\r") == 0;
-    }
-    return is_ok;
+    memset(_buffer, 0, sizeof(_buffer));
+    sprintf(_buffer, CMD_GET_BOARD_VERSION, axis);
+    _skywatcher_telegram(_buffer, strlen(_buffer));
+    return _buffer[0] != '!';
 }
 
-bool _skywatcher_start_motion(enum skywatcher_axis axis)
+bool _skywatcher_get_timer_frequency()
 {
-    bool is_ok = false;
-    char buffer[64] = {0};
-    sprintf(buffer, ":J%d\r", axis);
-    if (socket_send(_socket, buffer, strlen(buffer)))
-    {
-        memset(buffer, 0, sizeof(buffer));
-        size_t received_bytes = socket_receive(_socket, buffer, sizeof(buffer));
-        is_ok = strcmp(buffer, "=\r") == 0;
-    }
-    return is_ok;
+    memset(_buffer, 0, sizeof(_buffer));
+    sprintf(_buffer, CMD_GET_TIMER_FREQUENCY);
+    _skywatcher_telegram(_buffer, strlen(_buffer));
+    return _buffer[0] != '!';
 }
 
-bool _skywatcher_get_axis_counts_per_revolution(uint32_t* step_count, enum skywatcher_axis axis)
+bool _skywatcher_get_cpr(enum skywatcher_axis axis)
 {
-    bool is_ok = false;
-    if (axis != SA_BOTH)
-    {
-        char buffer[64] = {0};
-        sprintf(buffer, ":a%d\r", axis);
-        if (socket_send(_socket, buffer, strlen(buffer)))
-        {
-            memset(buffer, 0, sizeof(buffer));
-            char* endptr = NULL;
-            size_t received_bytes = socket_receive(_socket, buffer, sizeof(buffer));
-            is_ok = (buffer[0] == '=') && (buffer[7] == '\r');
-
-            string_t hex_number = {0};
-            hex_number[0] = buffer[6];
-            hex_number[1] = buffer[5];
-            hex_number[2] = buffer[4];
-            hex_number[3] = buffer[3];
-            hex_number[4] = buffer[2];
-            hex_number[5] = buffer[1];
-            
-            *step_count = strtol(hex_number, &endptr, 16);
-            is_ok = is_ok && (*endptr == '\0');
-            *step_count -= POSITION_OFFSET;
-        }
-    }
-    return is_ok;
+    memset(_buffer, 0, sizeof(_buffer));
+    sprintf(_buffer, CMD_GET_CPR, axis);
+    _skywatcher_telegram(_buffer, strlen(_buffer));
+    return _buffer[0] != '!';
 }
 
-bool _skywatcher_get_timer_frequency(uint32_t* frequency)
+bool _skywatcher_get_axis_status(enum skywatcher_axis axis)
 {
-    bool is_ok = false;
-    char buffer[64] = {0};
-    sprintf(buffer, ":b1\r");
-    if (socket_send(_socket, buffer, strlen(buffer)))
-    {
-        memset(buffer, 0, sizeof(buffer));
-        char* endptr = NULL;
-        size_t received_bytes = socket_receive(_socket, buffer, sizeof(buffer));
-        is_ok = (buffer[0] == '=') && (buffer[7] == '\r');
-
-        string_t hex_number = {0};
-        hex_number[0] = buffer[6];
-        hex_number[1] = buffer[5];
-        hex_number[2] = buffer[4];
-        hex_number[3] = buffer[3];
-        hex_number[4] = buffer[2];
-        hex_number[5] = buffer[1];
-        
-        *frequency = strtol(hex_number, &endptr, 16);
-        is_ok = is_ok && (*endptr == '\0');
-    }
-    return is_ok;
+    memset(_buffer, 0, sizeof(_buffer));
+    sprintf(_buffer, CMD_STATUS, axis);
+    _skywatcher_telegram(_buffer, strlen(_buffer));
+    return _buffer[0] != '!';
 }
 
-double _skywatcher_calculate_speed_cps(enum skywatcher_axis axis, double angular_speed_degree_per_s)
+bool _skywatcher_set_axis_sleep(enum skywatcher_axis axis, bool sleep)
 {
-    double speed_cps = 0.0;
-    if (axis != SA_BOTH)
-    {
-        speed_cps = angular_speed_degree_per_s * _counts_per_revolution[axis - 1] / 360.0;
-    }
-    return speed_cps;
+    memset(_buffer, 0, sizeof(_buffer));
+    sprintf(_buffer, CMD_SLEEP, axis, sleep ? SAS_BLOCKED : SAS_NORMAL);
+    _skywatcher_telegram(_buffer, strlen(_buffer));
+    return _buffer[0] != '!';
 }
 
-double _skywatcher_calculate_preset_value(enum skywatcher_axis axis, double angular_speed_degree_per_s)
+bool _skywatcher_instant_stop(enum skywatcher_axis axis)
 {
-    double speed_cps = _skywatcher_calculate_speed_cps(axis, angular_speed_degree_per_s);
-    double preset_value = 0.0;
-    if (speed_cps != 0.0)
-    {
-        preset_value = _timer_frequency / speed_cps;
-    }
-    return preset_value;
+    memset(_buffer, 0, sizeof(_buffer));
+    sprintf(_buffer, CMD_INSTANT_STOP, axis);
+    _skywatcher_telegram(_buffer, strlen(_buffer));
+    return _buffer[0] != '!';
 }
 
 /*------------------------------------------------- PUBLIC ------------------------------------------------------*/
@@ -171,429 +126,105 @@ void skywatcher_close()
 
 bool skywatcher_initialize_axis()
 {
-    bool is_ok = false;
-    struct skywatcher_axis_status status = {0};
-    
-    while (status.init_state == SIS_NOT_INIT)
-    {
-        while (_skywatcher_initialize_axis(SA_AXIS_RA_AZ_1) == false)
-        {
-            threading_sleep(TSR_MILLI, 100);
-        }
-        
-        while (skywatcher_get_axis_status(&status, SA_AXIS_RA_AZ_1) == false)
-        {
-            threading_sleep(TSR_MILLI, 100);
-        }
-    }
- 
-    status.init_state = SIS_NOT_INIT;
-    while (status.init_state == SIS_NOT_INIT)
-    {
-        while (_skywatcher_initialize_axis(SA_AXIS_DEC_ALT_2) == false)
-        {
-            threading_sleep(TSR_MILLI, 100);
-        }
-        
-        while (skywatcher_get_axis_status(&status, SA_AXIS_DEC_ALT_2) == false)
-        {
-            threading_sleep(TSR_MILLI, 100);
-        }
-    }
+    char value[16] = {0};
+    char* endptr = NULL;
+    bool is_ok = _skywatcher_initialize_axis(SA_AXIS_1);
+    is_ok = is_ok && _skywatcher_initialize_axis(SA_AXIS_2);
+    is_ok = is_ok && _skywatcher_get_timer_frequency();
+    value[4] = _buffer[1];
+    value[5] = _buffer[2];
+    value[2] = _buffer[3];
+    value[3] = _buffer[4];
+    value[0] = _buffer[5];
+    value[1] = _buffer[6];
+    _timer_frequency = strtol(value, &endptr, 16);
+    is_ok = is_ok && _skywatcher_get_cpr(SA_AXIS_1);
+    value[4] = _buffer[1];
+    value[5] = _buffer[2];
+    value[2] = _buffer[3];
+    value[3] = _buffer[4];
+    value[0] = _buffer[5];
+    value[1] = _buffer[6];
+    _cpr[SA_AXIS_1] = strtol(value, &endptr, 16);
+    is_ok = is_ok && _skywatcher_get_cpr(SA_AXIS_2);
+    value[4] = _buffer[1];
+    value[5] = _buffer[2];
+    value[2] = _buffer[3];
+    value[3] = _buffer[4];
+    value[0] = _buffer[5];
+    value[1] = _buffer[6];
+    _cpr[SA_AXIS_2] = strtol(value, &endptr, 16);
 
-    is_ok = _skywatcher_get_axis_counts_per_revolution(&_counts_per_revolution[SA_AXIS_RA_AZ_1 - 1], SA_AXIS_RA_AZ_1);
-    is_ok = is_ok && _skywatcher_get_axis_counts_per_revolution(&_counts_per_revolution[SA_AXIS_DEC_ALT_2 - 1], SA_AXIS_DEC_ALT_2);
-    is_ok = is_ok && skywatcher_get_position(&_position[SA_AXIS_RA_AZ_1 - 1], SA_AXIS_RA_AZ_1);
-    is_ok = is_ok && skywatcher_get_position(&_position[SA_AXIS_DEC_ALT_2 - 1], SA_AXIS_DEC_ALT_2);
-    is_ok = is_ok && skywatcher_get_axis_position(&_axis_position[SA_AXIS_RA_AZ_1 - 1], SA_AXIS_RA_AZ_1);
-    is_ok = is_ok && skywatcher_get_axis_position(&_axis_position[SA_AXIS_DEC_ALT_2 - 1], SA_AXIS_DEC_ALT_2);
-    is_ok = is_ok && _skywatcher_get_timer_frequency(&_timer_frequency);
-    return is_ok;
-}
+    is_ok = is_ok && _skywatcher_get_motor_board_version(SA_AXIS_1);
+    logging_log_message(_buffer[3] == '0' ? "board axis 1: eq" : "board axis 1: az", true);
 
-bool skywatcher_stop_motion(enum skywatcher_axis axis)
-{
-    bool is_ok = false;
-    struct skywatcher_axis_status status_1 = {0};
-    struct skywatcher_axis_status status_2 = {0};
+    is_ok = is_ok && _skywatcher_get_motor_board_version(SA_AXIS_2);
+    logging_log_message(_buffer[3] == '0' ? "board axis 2: eq" : "board axis 2: az", true);
 
-    switch (axis)
-    {
-        case SA_BOTH:
-            do
-            {
-                while (skywatcher_get_axis_status(&status_1, SA_AXIS_RA_AZ_1) == false)
-                {
-                    threading_sleep(TSR_MILLI, 100);
-                }
-
-                while (skywatcher_get_axis_status(&status_2, SA_AXIS_DEC_ALT_2) == false)
-                {
-                    threading_sleep(TSR_MILLI, 100);
-                }
-
-                if ((status_1.action == SAA_RUNNING) || (status_2.action == SAA_RUNNING))
-                {
-                    while (_skywatcher_stop_motion(axis) == false)
-                    {
-                        threading_sleep(TSR_MILLI, 100);
-                    }
-
-                    while (skywatcher_get_axis_status(&status_1, SA_AXIS_RA_AZ_1) == false)
-                    {
-                        threading_sleep(TSR_MILLI, 100);
-                    }
-
-                    while (skywatcher_get_axis_status(&status_2, SA_AXIS_DEC_ALT_2) == false)
-                    {
-                        threading_sleep(TSR_MILLI, 100);
-                    }
-                }
-            } while ((status_1.action == SAA_RUNNING) || (status_2.action == SAA_RUNNING));
-            is_ok = true;
-            break;
-
-        case SA_AXIS_RA_AZ_1:
-            do
-            {
-                while (skywatcher_get_axis_status(&status_1, SA_AXIS_RA_AZ_1) == false)
-                {
-                    threading_sleep(TSR_MILLI, 100);
-                }
-
-                if (status_1.action == SAA_RUNNING)
-                {
-                    while (_skywatcher_stop_motion(axis) == false)
-                    {
-                        threading_sleep(TSR_MILLI, 100);
-                    }
-
-                    while (skywatcher_get_axis_status(&status_1, SA_AXIS_RA_AZ_1) == false)
-                    {
-                        threading_sleep(TSR_MILLI, 100);
-                    }
-                }
-            } while (status_1.action == SAA_RUNNING);
-            is_ok = true;
-            break;
-
-        case SA_AXIS_DEC_ALT_2:
-            do
-            {
-                while (skywatcher_get_axis_status(&status_2, SA_AXIS_DEC_ALT_2) == false)
-                {
-                    threading_sleep(TSR_MILLI, 100);
-                }
-
-                if (status_2.action == SAA_RUNNING)
-                {
-                    while (_skywatcher_stop_motion(axis) == false)
-                    {
-                        threading_sleep(TSR_MILLI, 100);
-                    }
-
-                    while (skywatcher_get_axis_status(&status_2, SA_AXIS_DEC_ALT_2) == false)
-                    {
-                        threading_sleep(TSR_MILLI, 100);
-                    }
-                }
-            } while (status_2.action == SAA_RUNNING);
-            is_ok = true;
-            break;
-    }
-
-    return is_ok;
-}
-
-bool skywatcher_start_motion(enum skywatcher_axis axis)
-{
-    bool is_ok = false;
-    struct skywatcher_axis_status status_1 = {0};
-    struct skywatcher_axis_status status_2 = {0};
-
-    switch (axis)
-    {
-        case SA_BOTH:
-            do
-            {
-                while (skywatcher_get_axis_status(&status_1, SA_AXIS_RA_AZ_1) == false)
-                {
-                    threading_sleep(TSR_MILLI, 100);
-                }
-
-                while (skywatcher_get_axis_status(&status_2, SA_AXIS_DEC_ALT_2) == false)
-                {
-                    threading_sleep(TSR_MILLI, 100);
-                }
-
-                if ((status_1.action == SAA_STOPPED) || (status_2.action == SAA_STOPPED))
-                {
-                    while (_skywatcher_start_motion(axis) == false)
-                    {
-                        threading_sleep(TSR_MILLI, 100);
-                    }
-
-                    while (skywatcher_get_axis_status(&status_1, SA_AXIS_RA_AZ_1) == false)
-                    {
-                        threading_sleep(TSR_MILLI, 100);
-                    }
-
-                    while (skywatcher_get_axis_status(&status_2, SA_AXIS_DEC_ALT_2) == false)
-                    {
-                        threading_sleep(TSR_MILLI, 100);
-                    }
-                }
-            } while ((status_1.action == SAA_STOPPED) || (status_2.action == SAA_STOPPED));
-            is_ok = true;
-            break;
-
-        case SA_AXIS_RA_AZ_1:
-            do
-            {
-                while (skywatcher_get_axis_status(&status_1, SA_AXIS_RA_AZ_1) == false)
-                {
-                    threading_sleep(TSR_MILLI, 100);
-                }
-
-                if (status_1.action == SAA_STOPPED)
-                {
-                    while (_skywatcher_start_motion(axis) == false)
-                    {
-                        threading_sleep(TSR_MILLI, 100);
-                    }
-
-                    while (skywatcher_get_axis_status(&status_1, SA_AXIS_RA_AZ_1) == false)
-                    {
-                        threading_sleep(TSR_MILLI, 100);
-                    }
-                }
-            } while (status_1.action == SAA_STOPPED);
-            is_ok = true;
-            break;
-
-        case SA_AXIS_DEC_ALT_2:
-            do
-            {
-                while (skywatcher_get_axis_status(&status_2, SA_AXIS_DEC_ALT_2) == false)
-                {
-                    threading_sleep(TSR_MILLI, 100);
-                }
-
-                if (status_2.action == SAA_STOPPED)
-                {
-                    while (_skywatcher_start_motion(axis) == false)
-                    {
-                        threading_sleep(TSR_MILLI, 100);
-                    }
-
-                    while (skywatcher_get_axis_status(&status_2, SA_AXIS_DEC_ALT_2) == false)
-                    {
-                        threading_sleep(TSR_MILLI, 100);
-                    }
-                }
-            } while (status_2.action == SAA_STOPPED);
-            is_ok = true;
-            break;
-    }
-
-    return is_ok;
-}
-
-bool skywatcher_instant_stop(enum skywatcher_axis axis)
-{
-    bool is_ok = false;
-    char buffer[64] = {0};
-    sprintf(buffer, ":L%d\r", axis);
-    if (socket_send(_socket, buffer, strlen(buffer)))
-    {
-        memset(buffer, 0, sizeof(buffer));
-        size_t received_bytes = socket_receive(_socket, buffer, sizeof(buffer));
-        is_ok = strcmp(buffer, "=\r") == 0;
-    }
-    return is_ok;
-}
-
-bool skywatcher_get_position(int32_t* position, enum skywatcher_axis axis)
-{
-    bool is_ok = false;
-    if (axis != SA_BOTH)
-    {
-        char buffer[64] = {0};
-        sprintf(buffer, ":j%d\r", axis);
-        if (socket_send(_socket, buffer, strlen(buffer)))
-        {
-            memset(buffer, 0, sizeof(buffer));
-            char* endptr = NULL;
-            size_t received_bytes = socket_receive(_socket, buffer, sizeof(buffer));
-            is_ok = (buffer[0] == '=') && (buffer[7] == '\r');
-
-            string_t hex_number = {0};
-            hex_number[0] = buffer[6];
-            hex_number[1] = buffer[5];
-            hex_number[2] = buffer[4];
-            hex_number[3] = buffer[3];
-            hex_number[4] = buffer[2];
-            hex_number[5] = buffer[1];
-            
-            *position = strtol(hex_number, &endptr, 16);
-            is_ok = is_ok && (*endptr == '\0');
-            *position -= POSITION_OFFSET;
-        }
-    }
-    return is_ok;
-}
-
-bool skywatcher_get_axis_position(int32_t* position, enum skywatcher_axis axis)
-{
-    bool is_ok = false;
-    if (axis != SA_BOTH)
-    {
-        char buffer[64] = {0};
-        sprintf(buffer, ":d%d\r", axis);
-        if (socket_send(_socket, buffer, strlen(buffer)))
-        {
-            memset(buffer, 0, sizeof(buffer));
-            char* endptr = NULL;
-            size_t received_bytes = socket_receive(_socket, buffer, sizeof(buffer));
-            is_ok = (buffer[0] == '=') && (buffer[7] == '\r');
-
-            string_t hex_number = {0};
-            hex_number[0] = buffer[6];
-            hex_number[1] = buffer[5];
-            hex_number[2] = buffer[4];
-            hex_number[3] = buffer[3];
-            hex_number[4] = buffer[2];
-            hex_number[5] = buffer[1];
-            
-            *position = strtol(hex_number, &endptr, 16);
-            is_ok = is_ok && (*endptr == '\0');
-            *position -= POSITION_OFFSET;
-        }
-    }
     return is_ok;
 }
 
 bool skywatcher_get_axis_status(skywatcher_axis_status_t status, enum skywatcher_axis axis)
 {
-    bool is_ok = false;
-    if (axis != SA_BOTH)
-    {
-        char buffer[64] = {0};
-        sprintf(buffer, ":f%d\r", axis);
-        if (socket_send(_socket, buffer, strlen(buffer)))
-        {
-            memset(buffer, 0, sizeof(buffer));
-            char* endptr = NULL;
-            size_t received_bytes = socket_receive(_socket, buffer, sizeof(buffer));
-            is_ok = (buffer[0] == '=') && (buffer[4] == '\r');
-
-            status->mode = buffer[1] & BIT_0 ? SM_TRACKING : SM_GOTO;
-            status->direction = buffer[1] & BIT_1 ? SD_CCW : SD_CW;
-            status->speed = buffer[1] & BIT_2 ? SSM_FAST : SSM_SLOW;
-            status->action = buffer[2] & BIT_0 ? SAA_RUNNING : SAA_STOPPED;
-            status->init_state = buffer[3] & BIT_0 ? SIS_DONE : SIS_NOT_INIT;
-        }
-    }
+    bool is_ok = _skywatcher_get_axis_status(axis);
+    char db_1 = _buffer[1];
+    char db_2 = _buffer[2];
+    char db_3 = _buffer[3];
+    status->mode = (db_1 & BIT_0) > 0 ? SM_TRACKING : SM_GOTO;
+    status->direction = (db_1 & BIT_1) > 0 ? SD_CCW : SD_CW;
+    status->init_state = (db_1 & BIT_2) > 0 ? SSM_FAST : SSM_SLOW;
+    status->action = (db_2 && BIT_0) > 0 ? SAA_RUNNING : SAA_STOPPED;
+    status->axis_state = (db_2 && BIT_1) > 0 ? SAS_BLOCKED : SAS_NORMAL;
+    status->init_state = (db_3 && BIT_0) > 0 ? SIS_DONE : SIS_NOT_INIT;
     return is_ok;
 }
 
-bool skywatcher_set_motion_mode_tracking(enum skywatcher_axis axis, enum skywatcher_direction direction)
+bool skywatcher_get_position(enum skywatcher_axis axis, int32_t* position)
 {
-    bool is_ok = false;
-    string_t buffer = {0};
-
-    snprintf(buffer, sizeof(buffer), ":G%d%d%d\r", axis, BIT_0 | BIT_1, BIT_0);
-    if (socket_send(_socket, buffer, strlen(buffer)))
-    {
-        memset(buffer, 0, sizeof(buffer));
-        char* endptr = NULL;
-        size_t received_bytes = socket_receive(_socket, buffer, sizeof(buffer));
-        is_ok = strcmp(buffer, "=\r") == 0;
-    }
-    return is_ok;
+    char value[16] = {0};
+    memset(_buffer, 0, sizeof(_buffer));
+    sprintf(_buffer, CMD_GET_POSITION, axis);
+    _skywatcher_telegram(_buffer, strlen(_buffer));
+    value[4] = _buffer[1];
+    value[5] = _buffer[2];
+    value[2] = _buffer[3];
+    value[3] = _buffer[4];
+    value[0] = _buffer[5];
+    value[1] = _buffer[6];
+    char* endptr = NULL;
+    *position = strtol(value, &endptr, 16) - POSITION_OFFSET;
+    return _buffer[0] != '!';
 }
 
-bool skywatcher_set_motion_mode_tracking_slow(enum skywatcher_axis axis, enum skywatcher_direction direction)
+bool skywatcher_set_position(enum skywatcher_axis axis, int32_t position)
 {
-    bool is_ok = false;
-    string_t buffer = {0};
-
-    snprintf(buffer, sizeof(buffer), ":G%d%d%d\r", axis, BIT_0, direction);
-    if (socket_send(_socket, buffer, strlen(buffer)))
-    {
-        memset(buffer, 0, sizeof(buffer));
-        char* endptr = NULL;
-        size_t received_bytes = socket_receive(_socket, buffer, sizeof(buffer));
-        is_ok = strcmp(buffer, "=\r") == 0;
-    }
-    return is_ok;
+    char pos[16] = {0};
+    memset(_buffer, 0, sizeof(_buffer));
+    sprintf(pos, "%x", position + POSITION_OFFSET);
+    sprintf(_buffer, CMD_SET_POSITION, axis);
+    _buffer[3] = pos[4];
+    _buffer[4] = pos[5];
+    _buffer[5] = pos[2];
+    _buffer[6] = pos[3];
+    _buffer[7] = pos[0];
+    _buffer[8] = pos[1];
+    _skywatcher_telegram(_buffer, strlen(_buffer));
+    return _buffer[0] != '!';
 }
 
-bool skywatcher_set_auto_guide_speed(enum skywatcher_axis axis, enum skywatcher_auto_guide_speed speed)
+bool skywatcher_get_axis_position(enum skywatcher_axis axis, int32_t* position)
 {
-    bool is_ok = false;
-    string_t buffer = {0};
-
-    snprintf(buffer, sizeof(buffer), ":P%d%d\r", axis, speed);
-    if (socket_send(_socket, buffer, strlen(buffer)))
-    {
-        memset(buffer, 0, sizeof(buffer));
-        char* endptr = NULL;
-        size_t received_bytes = socket_receive(_socket, buffer, sizeof(buffer));
-        is_ok = strcmp(buffer, "=\r") == 0;
-    }
-    return is_ok;
-}
-
-bool skywatcher_set_preset_value(enum skywatcher_axis axis, double angular_speed_degree_per_s)
-{
-    bool is_ok = false;
-    string_t buffer = {0};
-    if (axis != SA_BOTH)
-    {
-        int32_t preset_value = (int32_t) _skywatcher_calculate_preset_value(axis, angular_speed_degree_per_s);
-        char preset_value_hex[16] = {0};
-        sprintf(preset_value_hex, "%x", preset_value + POSITION_OFFSET);
-        snprintf(buffer, sizeof(buffer), ":I%dxxxxxx\r", axis);
-        buffer[3] = toupper(preset_value_hex[4]);
-        buffer[4] = toupper(preset_value_hex[5]);
-        buffer[5] = toupper(preset_value_hex[2]);
-        buffer[6] = toupper(preset_value_hex[3]);
-        buffer[7] = toupper(preset_value_hex[0]);
-        buffer[8] = toupper(preset_value_hex[1]);
-        if (socket_send(_socket, buffer, strlen(buffer)))
-        {
-            memset(buffer, 0, sizeof(buffer));
-            size_t received_bytes = socket_receive(_socket, buffer, sizeof(buffer));
-            is_ok = strcmp(buffer, "=\r") == 0;
-        }
-    }
-    return is_ok;
-}
-
-void skywatcher_handle_arrow_keys(uint32_t key_value)
-{
-    switch (key_value)
-    {
-        case GDK_KEY_Left:
-            logging_log_message("mount move left", true);
-            break;
-
-        case GDK_KEY_Right:
-            logging_log_message("mount move right", true);
-            break;
-            
-        case GDK_KEY_Up:
-            logging_log_message("mount move north", true);
-            skywatcher_stop_motion(SA_AXIS_RA_AZ_1);
-            skywatcher_set_motion_mode_tracking(SA_AXIS_RA_AZ_1, SD_CW);
-            skywatcher_set_preset_value(SA_AXIS_RA_AZ_1, 1.0);
-            skywatcher_start_motion(SA_AXIS_RA_AZ_1);
-            break;
-            
-        case GDK_KEY_Down:
-            logging_log_message("mount move south", true);
-            skywatcher_instant_stop(SA_BOTH);
-            break;            
-    }
+    char pos[16] = {0};
+    memset(_buffer, 0, sizeof(_buffer));
+    sprintf(_buffer, CMD_GET_AXIS_POSITION, axis);
+    _skywatcher_telegram(_buffer, strlen(_buffer));
+    pos[4] = _buffer[1];
+    pos[5] = _buffer[2];
+    pos[2] = _buffer[3];
+    pos[3] = _buffer[4];
+    pos[0] = _buffer[5];
+    pos[1] = _buffer[6];
+    char* endptr = NULL;
+    *position = strtol(pos, &endptr, 16) - POSITION_OFFSET;
+    return _buffer[0] != '!';
 }
