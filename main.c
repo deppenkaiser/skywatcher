@@ -1,5 +1,7 @@
 #include "skywatcher.h"
 
+#include <threading/threading.h>
+
 int main(int argc, char **argv)
 {
     if (skywatcher_open("192.168.0.51"))
@@ -19,16 +21,27 @@ int main(int argc, char **argv)
             is_ok = is_ok && skywatcher_get_position(SA_AXIS_2, &position_2);
             is_ok = is_ok && skywatcher_get_axis_position(SA_AXIS_1, &axis_position_1);
             is_ok = is_ok && skywatcher_get_axis_position(SA_AXIS_2, &axis_position_2);
-
             is_ok = is_ok && skywatcher_instant_stop(SA_AXIS_1);
 
-            double speed = 0.1;
-            is_ok = is_ok && skywatcher_set_speed(SA_AXIS_1, speed);
-            is_ok = is_ok && skywatcher_get_speed(SA_AXIS_1, &speed);
-
+            is_ok = is_ok && skywatcher_set_speed(SA_AXIS_1, 0.1);
             is_ok = is_ok && skywatcher_set_motion_mode(SA_AXIS_1, true, true, true, false);
             is_ok = is_ok && skywatcher_start_motion(SA_AXIS_1);
+            for (uint32_t i = 0; i < 10; ++i)
+            {
+                threading_sleep(TSR_SECOND, 1);
+            }
             is_ok = is_ok && skywatcher_stop_motion(SA_AXIS_1);
+            is_ok = is_ok && skywatcher_instant_stop(SA_AXIS_1);
+
+            is_ok = is_ok && skywatcher_set_speed(SA_AXIS_1, 0.1);
+            is_ok = is_ok && skywatcher_set_motion_mode(SA_AXIS_1, true, true, false, false);
+            is_ok = is_ok && skywatcher_start_motion(SA_AXIS_1);
+            for (uint32_t i = 0; i < 10; ++i)
+            {
+                threading_sleep(TSR_SECOND, 1);
+            }
+            is_ok = is_ok && skywatcher_stop_motion(SA_AXIS_1);
+            is_ok = is_ok && skywatcher_instant_stop(SA_AXIS_1);
         }
 
         skywatcher_close();
