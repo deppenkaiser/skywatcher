@@ -22,11 +22,11 @@ int main(int argc, char **argv)
 
             is_ok = is_ok && skywatcher_instant_stop(SA_AXIS_1);
 
-            double speed = 1.0;
+            double speed = 0.1;
             is_ok = is_ok && skywatcher_set_speed(SA_AXIS_1, speed);
             is_ok = is_ok && skywatcher_get_speed(SA_AXIS_1, &speed);
 
-            is_ok = is_ok && skywatcher_set_motion_mode(SA_AXIS_1, true, true, true, true);
+            is_ok = is_ok && skywatcher_set_motion_mode(SA_AXIS_1, true, true, true, false);
             is_ok = is_ok && skywatcher_start_motion(SA_AXIS_1);
             is_ok = is_ok && skywatcher_stop_motion(SA_AXIS_1);
         }

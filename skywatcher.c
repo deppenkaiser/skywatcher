@@ -216,9 +216,11 @@ bool skywatcher_get_axis_status(skywatcher_axis_status_t status, enum skywatcher
     return is_ok;
 }
 
-bool skywatcher_set_motion_mode(enum skywatcher_axis axis, bool tracking, bool fast, bool cw, bool north)
+bool skywatcher_set_motion_mode(enum skywatcher_axis axis, bool tracking, bool fast, bool ccw, bool south)
 {
-    _skywatcher_execute_with_param_2(CMD_GET_POSITION, axis, BIT_2 | BIT_0, BIT_0);
+    uint32_t param_1 = BIT_2 | (fast ? BIT_1 : 0) | (tracking ? BIT_0 : 0);
+    uint32_t param_2 = (south ? BIT_1 : 0) | (ccw ? BIT_0 : 0);
+    _skywatcher_execute_with_param_2(CMD_SET_MOTION_MODE, axis, param_1, param_2);
     return _buffer_out[0] == '=';
 }
 

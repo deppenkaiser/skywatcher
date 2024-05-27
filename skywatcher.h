@@ -18,5 +18,5 @@ bool skywatcher_set_position(enum skywatcher_axis axis, int32_t position);
 bool skywatcher_get_axis_position(enum skywatcher_axis axis, int32_t* position);
 bool skywatcher_get_speed(enum skywatcher_axis axis, double* angular_speed_degrees_per_s);
 bool skywatcher_set_speed(enum skywatcher_axis axis, double angular_speed_degrees_per_s);
-bool skywatcher_set_motion_mode(enum skywatcher_axis axis, bool tracking, bool fast, bool cw, bool north);
+bool skywatcher_set_motion_mode(enum skywatcher_axis axis, bool tracking, bool fast, bool ccw, bool south);
 bool skywatcher_set_axis_sleep(enum skywatcher_axis axis, bool sleep);
