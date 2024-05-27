@@ -5,6 +5,8 @@
 #include <logging/logging.h>
 #include <threading/threading.h>
 
+/*------------------------------------------------- PRIVATE ------------------------------------------------------*/
+
 #define BIT_0 1
 #define BIT_1 2
 #define BIT_2 4
@@ -32,8 +34,6 @@
 #define CMD_GET_CPR             ":a%d\r"
 #define CMD_START_MOTION        ":J%d\r"
 #define CMD_STOP_MOTION         ":K%d\r"
-
-/*------------------------------------------------- PRIVATE ------------------------------------------------------*/
 
 socket_handle_t _socket = SOCKET_INVALID_SOCKET;
 char _buffer_in[16] = {0};
