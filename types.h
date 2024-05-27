@@ -2,6 +2,7 @@
 
 enum skywatcher_axis
 {
+    SA_NONE = 0,
     SA_AXIS_1 = 1,
     SA_AXIS_2 = 2
 };
