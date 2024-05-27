@@ -16,7 +16,6 @@
 #define BIT_6 64
 #define BIT_7 128
 
-#define AXIS_COUNT 2
 #define POSITION_OFFSET 8388608
 
 #define CMD_INIT                ":F%d\r"
