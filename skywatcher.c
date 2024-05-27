@@ -33,6 +33,8 @@
 #define CMD_GET_CPR             ":a%d\r"
 #define CMD_START_MOTION        ":J%d\r"
 #define CMD_STOP_MOTION         ":K%d\r"
+#define CMD_SET_GOTO_TARGET     ":S%dxxxxxx\r"
+#define CMD_GET_GOTO_TARGET     ":h%d\r"
 
 socket_handle_t _socket = SOCKET_INVALID_SOCKET;
 char _buffer_in[16] = {0};
@@ -200,7 +202,7 @@ bool skywatcher_instant_stop(enum skywatcher_axis axis)
     return _buffer_out[0] == '=';
 }
 
-bool skywatcher_get_axis_status(skywatcher_axis_status_t status, enum skywatcher_axis axis)
+bool skywatcher_get_axis_status(enum skywatcher_axis axis, skywatcher_axis_status_t status)
 {
     bool is_ok = _skywatcher_get_axis_status(axis);
     char db_1 = _buffer_out[1];
@@ -297,12 +299,12 @@ bool skywatcher_set_position(enum skywatcher_axis axis, int32_t position)
     char buffer[16] = {0};
     sprintf(buffer, CMD_SET_POSITION, axis);
     sprintf(value, "%x", position + POSITION_OFFSET);
-    buffer[3] = value[4];
-    buffer[4] = value[5];
-    buffer[5] = value[2];
-    buffer[6] = value[3];
-    buffer[7] = value[0];
-    buffer[8] = value[1];
+    buffer[3] = toupper(value[4]);
+    buffer[4] = toupper(value[5]);
+    buffer[5] = toupper(value[2]);
+    buffer[6] = toupper(value[3]);
+    buffer[7] = toupper(value[0]);
+    buffer[8] = toupper(value[1]);
     _skywatcher_execute(buffer, SA_NONE);
     return _buffer_out[0] == '=';
 }
@@ -319,5 +321,36 @@ bool skywatcher_get_axis_position(enum skywatcher_axis axis, int32_t* position)
     value[1] = _buffer_out[6];
     char* endptr = NULL;
     *position = strtol(value, &endptr, 16) - POSITION_OFFSET;
+    return _buffer_out[0] == '=';
+}
+
+bool skywatcher_set_goto_target(enum skywatcher_axis axis, int32_t target)
+{
+    char value[16] = {0};
+    char buffer[16] = {0};
+    sprintf(buffer, CMD_SET_GOTO_TARGET, axis);
+    sprintf(value, "%x", target + POSITION_OFFSET);
+    buffer[3] = toupper(value[4]);
+    buffer[4] = toupper(value[5]);
+    buffer[5] = toupper(value[2]);
+    buffer[6] = toupper(value[3]);
+    buffer[7] = toupper(value[0]);
+    buffer[8] = toupper(value[1]);
+    _skywatcher_execute(buffer, SA_NONE);
+    return _buffer_out[0] == '=';
+}
+
+bool skywatcher_get_goto_target(enum skywatcher_axis axis, int32_t* target)
+{
+    char value[16] = {0};
+    _skywatcher_execute(CMD_GET_GOTO_TARGET, axis);
+    value[4] = _buffer_out[1];
+    value[5] = _buffer_out[2];
+    value[2] = _buffer_out[3];
+    value[3] = _buffer_out[4];
+    value[0] = _buffer_out[5];
+    value[1] = _buffer_out[6];
+    char* endptr = NULL;
+    *target = strtol(value, &endptr, 16) - POSITION_OFFSET;
     return _buffer_out[0] == '=';
 }
