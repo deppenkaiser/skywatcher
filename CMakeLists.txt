@@ -22,4 +22,5 @@ target_include_directories(skywatcher PRIVATE
 )
 
 target_link_libraries(skywatcher
+    m
 )

@@ -6,8 +6,10 @@ int main(int argc, char **argv)
 {
     if (skywatcher_open("192.168.0.51"))
     {
-        if (skywatcher_initialize_axis())
+        if (skywatcher_initialize_axis(2.4, /*0.67 **/ 1624.0))
         {
+            skywatcher_set_siderial_speed();
+
             bool is_ok = true;
             struct skywatcher_axis_status status_1 = {0};
             struct skywatcher_axis_status status_2 = {0};
@@ -43,7 +45,6 @@ int main(int argc, char **argv)
             }
             is_ok = is_ok && skywatcher_stop_motion(SA_AXIS_1);
             is_ok = is_ok && skywatcher_instant_stop(SA_AXIS_1);
-*/
 
             int32_t target = -500000;
             is_ok = is_ok && skywatcher_set_goto_target(SA_AXIS_1, target);
@@ -59,6 +60,7 @@ int main(int argc, char **argv)
             is_ok = is_ok && skywatcher_set_goto_target(SA_AXIS_1, 0);
             is_ok = is_ok && skywatcher_set_motion_mode(SA_AXIS_1, false, true, true, false);
             is_ok = is_ok && skywatcher_start_motion(SA_AXIS_1);
+*/
         }
 
         skywatcher_close();
