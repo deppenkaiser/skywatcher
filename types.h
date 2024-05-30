@@ -2,9 +2,9 @@
 
 enum skywatcher_axis
 {
-    SA_AXIS_RA_AZ_1 = 1,
-    SA_AXIS_DEC_ALT_2 = 2,
-    SA_BOTH = 3
+    SA_NONE = 0,
+    SA_AXIS_1 = 1,
+    SA_AXIS_2 = 2
 };
 
 enum skywatcher_mode
@@ -31,6 +31,12 @@ enum skywatcher_axis_action
     SAA_RUNNING = 1
 };
 
+enum skywatcher_axis_state
+{
+    SAS_NORMAL = 0,
+    SAS_BLOCKED = 1
+};
+
 enum skywatcher_init_state
 {
     SIS_NOT_INIT = 0,
@@ -52,5 +58,6 @@ typedef struct skywatcher_axis_status
     enum skywatcher_direction direction;
     enum skywatcher_speed_mode speed;
     enum skywatcher_axis_action action;
+    enum skywatcher_axis_state axis_state;
     enum skywatcher_init_state init_state;
 } *skywatcher_axis_status_t;
