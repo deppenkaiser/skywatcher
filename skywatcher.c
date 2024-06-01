@@ -202,9 +202,18 @@ bool _skywatcher_get_axis_status(enum skywatcher_axis axis)
 
 bool skywatcher_open(const char* ip)
 {
+    bool connected = false;
+
     threading_initialize_critical_section(&_cs);
     _socket = socket_create_socket(1, false);
-    return socket_connect(_socket, ip, 11880);
+    if (socket_ping(ip))
+    {
+        // socket_connect does not return false, if the host is not reacheable!?
+        socket_connect(_socket, ip, 11880);
+        connected = true;
+    }
+
+    return connected;
 }
 
 void skywatcher_close()
