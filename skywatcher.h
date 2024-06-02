@@ -22,5 +22,6 @@ bool skywatcher_set_motion_mode(enum skywatcher_axis axis, bool tracking, bool f
 bool skywatcher_set_axis_sleep(enum skywatcher_axis axis, bool sleep);
 bool skywatcher_get_goto_target(enum skywatcher_axis axis, int32_t* target);
 bool skywatcher_set_goto_target(enum skywatcher_axis axis, int32_t target);
+bool skywatcher_set_aux(enum skywatcher_axis axis, bool on);
 bool skywatcher_set_siderial_speed();
 
