@@ -1,0 +1,3 @@
+/home/czymic/Dokumente/Sandbox/skywatcher/build/CMakeFiles/skywatcher.dir
+/home/czymic/Dokumente/Sandbox/skywatcher/build/CMakeFiles/edit_cache.dir
+/home/czymic/Dokumente/Sandbox/skywatcher/build/CMakeFiles/rebuild_cache.dir
