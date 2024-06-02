@@ -1,0 +1,7 @@
+# ninja log v5
+0	27	1716711121289504055	CMakeFiles/skywatcher.dir/socket/socket.c.o	aa2a2ce314c71d97
+1	21	1716711147369198926	CMakeFiles/skywatcher.dir/threading/threading.c.o	ca8654cf6976e3fc
+1	52	1716982670756487407	CMakeFiles/skywatcher.dir/skywatcher.c.o	3852952ffea50237
+24	40	1717328847303149638	bin/skywatcher	7f6236e85c756bf
+1	21	1716731396215848568	CMakeFiles/skywatcher.dir/logging/logging.c.o	597fc6d8c46527f2
+1	24	1717328847287149393	CMakeFiles/skywatcher.dir/main.c.o	30fe3e5db57fbd3b

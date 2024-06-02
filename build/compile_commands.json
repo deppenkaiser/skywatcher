@@ -1,0 +1,32 @@
+[
+{
+  "directory": "/home/czymic/Dokumente/Sandbox/skywatcher/build",
+  "command": "/usr/bin/gcc -I/home/czymic/Dokumente/Sandbox/skywatcher -g -D_DEBUG -o CMakeFiles/skywatcher.dir/main.c.o -c /home/czymic/Dokumente/Sandbox/skywatcher/main.c",
+  "file": "/home/czymic/Dokumente/Sandbox/skywatcher/main.c",
+  "output": "CMakeFiles/skywatcher.dir/main.c.o"
+},
+{
+  "directory": "/home/czymic/Dokumente/Sandbox/skywatcher/build",
+  "command": "/usr/bin/gcc -I/home/czymic/Dokumente/Sandbox/skywatcher -g -D_DEBUG -o CMakeFiles/skywatcher.dir/skywatcher.c.o -c /home/czymic/Dokumente/Sandbox/skywatcher/skywatcher.c",
+  "file": "/home/czymic/Dokumente/Sandbox/skywatcher/skywatcher.c",
+  "output": "CMakeFiles/skywatcher.dir/skywatcher.c.o"
+},
+{
+  "directory": "/home/czymic/Dokumente/Sandbox/skywatcher/build",
+  "command": "/usr/bin/gcc -I/home/czymic/Dokumente/Sandbox/skywatcher -g -D_DEBUG -o CMakeFiles/skywatcher.dir/socket/socket.c.o -c /home/czymic/Dokumente/Sandbox/skywatcher/socket/socket.c",
+  "file": "/home/czymic/Dokumente/Sandbox/skywatcher/socket/socket.c",
+  "output": "CMakeFiles/skywatcher.dir/socket/socket.c.o"
+},
+{
+  "directory": "/home/czymic/Dokumente/Sandbox/skywatcher/build",
+  "command": "/usr/bin/gcc -I/home/czymic/Dokumente/Sandbox/skywatcher -g -D_DEBUG -o CMakeFiles/skywatcher.dir/threading/threading.c.o -c /home/czymic/Dokumente/Sandbox/skywatcher/threading/threading.c",
+  "file": "/home/czymic/Dokumente/Sandbox/skywatcher/threading/threading.c",
+  "output": "CMakeFiles/skywatcher.dir/threading/threading.c.o"
+},
+{
+  "directory": "/home/czymic/Dokumente/Sandbox/skywatcher/build",
+  "command": "/usr/bin/gcc -I/home/czymic/Dokumente/Sandbox/skywatcher -g -D_DEBUG -o CMakeFiles/skywatcher.dir/logging/logging.c.o -c /home/czymic/Dokumente/Sandbox/skywatcher/logging/logging.c",
+  "file": "/home/czymic/Dokumente/Sandbox/skywatcher/logging/logging.c",
+  "output": "CMakeFiles/skywatcher.dir/logging/logging.c.o"
+}
+]
