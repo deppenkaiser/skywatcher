@@ -6,15 +6,12 @@ int main(int argc, char **argv)
 {
     if (skywatcher_open("192.168.0.51"))
     {
-        if (skywatcher_instant_stop(SA_AXIS_1))
+        if (skywatcher_initialize_axis(2.4, 1624.0))
         {
-            if (skywatcher_initialize_axis(2.4, 1624.0))
+            if (skywatcher_set_siderial_speed())
             {
-                if (skywatcher_set_siderial_speed())
-                {
-                    threading_sleep(TSR_SECOND, 30);
-                    skywatcher_stop_motion(SA_AXIS_1);
-                }
+                threading_sleep(TSR_SECOND, 30);
+                skywatcher_stop_motion(SA_AXIS_1);
             }
         }
 
