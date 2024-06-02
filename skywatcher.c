@@ -37,6 +37,7 @@
 #define CMD_STOP_MOTION         ":K%d\r"
 #define CMD_SET_GOTO_TARGET     ":S%dxxxxxx\r"
 #define CMD_GET_GOTO_TARGET     ":h%d\r"
+#define CMD_SET_AUX             ":O%d\r"
 
 typedef char data_t[16];
 
@@ -52,7 +53,7 @@ double _max_exposure_time_s = 0.0;
 
 threading_critical_section _cs = {0};
 
-size_t _skywatcher_telegram();
+void _skywatcher_telegram();
 bool _skywatcher_initialize_axis(enum skywatcher_axis axis);
 bool _skywatcher_get_motor_board_version(enum skywatcher_axis axis);
 bool _skywatcher_get_axis_status(enum skywatcher_axis axis);
@@ -87,16 +88,33 @@ double _skywatcher_calculate_max_exposure_time_s(double pixel_size_um, double fo
     return fabs(phi_pixel_deg / _siderial_w_error_2_level_deg_per_s);
 }
 
-size_t _skywatcher_telegram()
+void _skywatcher_telegram()
 {
-    size_t bytes_received = 0;
     threading_lock_critical_section(&_cs);
-    if (socket_send(_socket, _buffer_in, strlen(_buffer_in)))
+    for (uint32_t retry_send = 0; retry_send < 5; ++retry_send)
     {
-        bytes_received = socket_receive(_socket, _buffer_out, sizeof(_buffer_out));
+        bool has_data = false;
+        if (socket_send(_socket, _buffer_in, strlen(_buffer_in)))
+        {
+            for (uint32_t retry_receive = 0; retry_receive < 5; ++retry_receive)
+            {
+                if (socket_receive(_socket, _buffer_out, sizeof(_buffer_out)) > 0)
+                {
+                    has_data = true;
+                    break;
+                }
+
+                threading_sleep(TSR_MILLI, 100);
+            }
+
+            if (has_data)
+            {
+                break;
+            }
+        }
     }
+    
     threading_unlock_critical_section(&_cs);
-    return bytes_received;
 }
 
 void _skywatcher_execute(char* command, enum skywatcher_axis axis)
@@ -251,22 +269,33 @@ void skywatcher_close()
 
 bool skywatcher_initialize_axis(double pixel_size_um, double focal_length_mm)
 {
+    bool is_ok = false;
     threading_lock_critical_section(&_cs);
 
-    bool is_ok = _skywatcher_initialize_axis(SA_AXIS_1);
-    is_ok = is_ok && _skywatcher_initialize_axis(SA_AXIS_2);
-    is_ok = is_ok && _skywatcher_get_timer_frequency(&_timer_frequency);
-    is_ok = is_ok && _skywatcher_get_cpr(SA_AXIS_1, &_cpr[SA_AXIS_1]);
-    is_ok = is_ok && _skywatcher_get_cpr(SA_AXIS_2, &_cpr[SA_AXIS_2]);
+    if (_skywatcher_initialize_axis(SA_AXIS_1))
+    {
+        if (_skywatcher_initialize_axis(SA_AXIS_2))
+        {
+            if (_skywatcher_get_timer_frequency(&_timer_frequency))
+            {
+                if (_skywatcher_get_cpr(SA_AXIS_1, &_cpr[SA_AXIS_1]) && _skywatcher_get_cpr(SA_AXIS_2, &_cpr[SA_AXIS_2]))
+                {
+                    if (_skywatcher_get_motor_board_version(SA_AXIS_1))
+                    {
+                        logging_log_message(_buffer_out[3] == '0' ? "board axis 1: eq" : "board axis 1: az", true);
 
-    is_ok = is_ok && _skywatcher_get_motor_board_version(SA_AXIS_1);
-    logging_log_message(_buffer_out[3] == '0' ? "board axis 1: eq" : "board axis 1: az", true);
-
-    is_ok = is_ok && _skywatcher_get_motor_board_version(SA_AXIS_2);
-    logging_log_message(_buffer_out[3] == '0' ? "board axis 2: eq" : "board axis 2: az", true);
-
-    _skywatcher_calculate_siderial_angular_speed_deg_per_s();
-    _max_exposure_time_s = _skywatcher_calculate_max_exposure_time_s(pixel_size_um, focal_length_mm);
+                        if (_skywatcher_get_motor_board_version(SA_AXIS_2))
+                        {
+                            logging_log_message(_buffer_out[3] == '0' ? "board axis 2: eq" : "board axis 2: az", true);
+                            _skywatcher_calculate_siderial_angular_speed_deg_per_s();
+                            _max_exposure_time_s = _skywatcher_calculate_max_exposure_time_s(pixel_size_um, focal_length_mm);
+                            is_ok = true;
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     threading_unlock_critical_section(&_cs);
     return is_ok;
@@ -274,13 +303,32 @@ bool skywatcher_initialize_axis(double pixel_size_um, double focal_length_mm)
 
 bool skywatcher_set_siderial_speed()
 {
-    return skywatcher_set_speed(SA_AXIS_1, _siderial_w_deg_per_s + _siderial_w_error_1_level_deg_per_s);
+    bool is_ok = false;
+
+    if (skywatcher_set_speed(SA_AXIS_1, _siderial_w_deg_per_s + _siderial_w_error_1_level_deg_per_s))
+    {
+        if (skywatcher_set_motion_mode(SA_AXIS_1, true, false, true, false))
+        {
+            is_ok = skywatcher_start_motion(SA_AXIS_1);
+        }
+    }
+
+    return is_ok;
 }
 
 bool skywatcher_set_axis_sleep(enum skywatcher_axis axis, bool sleep)
 {
     threading_lock_critical_section(&_cs);
     _skywatcher_execute_with_param_1(CMD_SLEEP, axis, sleep ? SAS_BLOCKED : SAS_NORMAL);
+    bool is_ok = _buffer_out[0] == '=';
+    threading_unlock_critical_section(&_cs);
+    return is_ok;
+}
+
+bool skywatcher_set_aux(enum skywatcher_axis axis, bool on)
+{
+    threading_lock_critical_section(&_cs);
+    _skywatcher_execute_with_param_1(CMD_SET_AUX, axis, on ? '1' : '0');
     bool is_ok = _buffer_out[0] == '=';
     threading_unlock_critical_section(&_cs);
     return is_ok;
@@ -365,7 +413,6 @@ bool skywatcher_set_speed(enum skywatcher_axis axis, double angular_speed_degree
         data_t value = {0}, value_shift = {0};
         double counts_per_s = angular_speed_degrees_per_s * _cpr[axis] / 360.0;
         double preset = _timer_frequency / counts_per_s;
-        memset(_buffer_in, 0, sizeof(_buffer_in));
         sprintf(value, "%x", (int32_t) preset);
         
         uint32_t value_lenght = strlen(value);
@@ -375,13 +422,13 @@ bool skywatcher_set_speed(enum skywatcher_axis axis, double angular_speed_degree
             value_shift[5 - i] = value[value_lenght - 1 - i];
         }
 
+        memset(_buffer_in, 0, sizeof(_buffer_in));
         sprintf(_buffer_in, CMD_SET_SPEED, axis);
         _skywatcher_put_buffer_to_buffer(_buffer_in, value_shift);
 
-        size_t bytes_received = 0;
         if (socket_send(_socket, _buffer_in, strlen(_buffer_in)))
         {
-            bytes_received = socket_receive(_socket, _buffer_out, sizeof(_buffer_out));
+            socket_receive(_socket, _buffer_out, sizeof(_buffer_out));
         }
     }
     is_ok = _buffer_out[0] == '=';
