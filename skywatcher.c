@@ -298,7 +298,7 @@ bool skywatcher_initialize_axis(double pixel_size_um, double focal_length_mm)
     return is_ok;
 }
 
-bool skywatcher_set_siderial_speed()
+bool skywatcher_set_RA_siderial_speed()
 {
     bool is_ok = false;
 
@@ -307,6 +307,24 @@ bool skywatcher_set_siderial_speed()
         if (skywatcher_set_motion_mode(SA_AXIS_1, true, false, false, false))
         {
             is_ok = skywatcher_start_motion(SA_AXIS_1);
+        }
+    }
+
+    return is_ok;
+}
+
+bool skywatcher_set_DEC_speed(double w_deg_per_s)
+{
+    bool is_ok = false;
+
+    if (skywatcher_instant_stop(SA_AXIS_2))
+    {
+        if (skywatcher_set_speed(SA_AXIS_2, w_deg_per_s))
+        {
+            if (skywatcher_set_motion_mode(SA_AXIS_2, true, false, false, false))
+            {
+                is_ok = skywatcher_start_motion(SA_AXIS_2);
+            }
         }
     }
 
