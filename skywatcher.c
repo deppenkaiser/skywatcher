@@ -319,9 +319,9 @@ bool skywatcher_set_DEC_speed(double w_deg_per_s)
 
     if (skywatcher_instant_stop(SA_AXIS_2))
     {
-        if (skywatcher_set_speed(SA_AXIS_2, w_deg_per_s))
+        if (skywatcher_set_speed(SA_AXIS_2, fabs(w_deg_per_s)))
         {
-            if (skywatcher_set_motion_mode(SA_AXIS_2, true, false, false, false))
+            if (skywatcher_set_motion_mode(SA_AXIS_2, true, false, w_deg_per_s >= 0.0, false))
             {
                 is_ok = skywatcher_start_motion(SA_AXIS_2);
             }
