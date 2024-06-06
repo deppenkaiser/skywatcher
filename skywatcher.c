@@ -272,25 +272,22 @@ bool skywatcher_initialize_axis(double pixel_size_um, double focal_length_mm)
     bool is_ok = false;
     threading_lock_critical_section(&_cs);
 
-    if (_skywatcher_initialize_axis(SA_AXIS_1))
+    if (_skywatcher_initialize_axis(SA_AXIS_1) && _skywatcher_initialize_axis(SA_AXIS_2))
     {
-        if (_skywatcher_initialize_axis(SA_AXIS_2))
+        if (_skywatcher_get_timer_frequency(&_timer_frequency))
         {
-            if (_skywatcher_get_timer_frequency(&_timer_frequency))
+            if (_skywatcher_get_cpr(SA_AXIS_1, &_cpr[SA_AXIS_1]) && _skywatcher_get_cpr(SA_AXIS_2, &_cpr[SA_AXIS_2]))
             {
-                if (_skywatcher_get_cpr(SA_AXIS_1, &_cpr[SA_AXIS_1]) && _skywatcher_get_cpr(SA_AXIS_2, &_cpr[SA_AXIS_2]))
+                if (_skywatcher_get_motor_board_version(SA_AXIS_1))
                 {
-                    if (_skywatcher_get_motor_board_version(SA_AXIS_1))
-                    {
-                        logging_log_message(_buffer_out[3] == '0' ? "board axis 1: eq" : "board axis 1: az", true);
+                    logging_log_message(_buffer_out[3] == '0' ? "board axis 1: eq" : "board axis 1: az", true);
 
-                        if (_skywatcher_get_motor_board_version(SA_AXIS_2))
-                        {
-                            logging_log_message(_buffer_out[3] == '0' ? "board axis 2: eq" : "board axis 2: az", true);
-                            _skywatcher_calculate_siderial_angular_speed_deg_per_s();
-                            _max_exposure_time_s = _skywatcher_calculate_max_exposure_time_s(pixel_size_um, focal_length_mm);
-                            is_ok = true;
-                        }
+                    if (_skywatcher_get_motor_board_version(SA_AXIS_2))
+                    {
+                        logging_log_message(_buffer_out[3] == '0' ? "board axis 2: eq" : "board axis 2: az", true);
+                        _skywatcher_calculate_siderial_angular_speed_deg_per_s();
+                        _max_exposure_time_s = _skywatcher_calculate_max_exposure_time_s(pixel_size_um, focal_length_mm);
+                        is_ok = true;
                     }
                 }
             }
@@ -301,15 +298,40 @@ bool skywatcher_initialize_axis(double pixel_size_um, double focal_length_mm)
     return is_ok;
 }
 
-bool skywatcher_set_siderial_speed()
+bool skywatcher_set_RA_siderial_speed()
 {
     bool is_ok = false;
 
     if (skywatcher_set_speed(SA_AXIS_1, _siderial_w_deg_per_s + _siderial_w_error_1_level_deg_per_s))
     {
-        if (skywatcher_set_motion_mode(SA_AXIS_1, true, false, true, false))
+        if (skywatcher_set_motion_mode(SA_AXIS_1, true, false, false, false))
         {
             is_ok = skywatcher_start_motion(SA_AXIS_1);
+        }
+    }
+
+    return is_ok;
+}
+
+bool skywatcher_set_DEC_speed(double w_deg_per_s)
+{
+    bool is_ok = false;
+
+    if (skywatcher_instant_stop(SA_AXIS_2))
+    {
+        if (w_deg_per_s != 0.0)
+        {
+            if (skywatcher_set_speed(SA_AXIS_2, fabs(w_deg_per_s)))
+            {
+                if (skywatcher_set_motion_mode(SA_AXIS_2, true, false, w_deg_per_s >= 0.0, false))
+                {
+                    is_ok = skywatcher_start_motion(SA_AXIS_2);
+                }
+            }
+            else
+            {
+                skywatcher_stop_motion(SA_AXIS_2);
+            }
         }
     }
 
