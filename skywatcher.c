@@ -298,7 +298,7 @@ bool skywatcher_initialize_axis(double pixel_size_um, double focal_length_mm)
     return is_ok;
 }
 
-bool skywatcher_set_RA_siderial_speed()
+bool skywatcher_set_ra_siderial_speed()
 {
     bool is_ok = false;
 
@@ -313,7 +313,7 @@ bool skywatcher_set_RA_siderial_speed()
     return is_ok;
 }
 
-bool skywatcher_set_DEC_speed(double w_deg_per_s)
+bool skywatcher_set_dec_speed(double w_deg_per_s)
 {
     bool is_ok = false;
 
