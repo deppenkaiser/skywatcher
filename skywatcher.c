@@ -5,6 +5,7 @@
 #include <math.h>
 #include <logging/logging.h>
 #include <threading/threading.h>
+#include <gst/gst.h>
 
 /*------------------------------------------------- PRIVATE ------------------------------------------------------*/
 
@@ -333,6 +334,10 @@ bool skywatcher_set_dec_speed(double w_deg_per_s)
                 skywatcher_stop_motion(SA_AXIS_2);
             }
         }
+        else
+        {
+            is_ok = true;
+        }
     }
 
     return is_ok;
@@ -430,7 +435,7 @@ bool skywatcher_set_speed(enum skywatcher_axis axis, double angular_speed_degree
 {
     bool is_ok = false;
     threading_lock_critical_section(&_cs);
-    if (angular_speed_degrees_per_s != 0.0)
+    if (angular_speed_degrees_per_s >= 1.0e-6)
     {
         data_t value = {0}, value_shift = {0};
         double counts_per_s = angular_speed_degrees_per_s * _cpr[axis] / 360.0;
@@ -452,8 +457,13 @@ bool skywatcher_set_speed(enum skywatcher_axis axis, double angular_speed_degree
         {
             socket_receive(_socket, _buffer_out, sizeof(_buffer_out));
         }
+        
+        is_ok = _buffer_out[0] == '=';
     }
-    is_ok = _buffer_out[0] == '=';
+    else
+    {
+        is_ok = skywatcher_stop_motion(axis);
+    }
     threading_unlock_critical_section(&_cs);
     return is_ok;
 }
