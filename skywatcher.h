@@ -25,3 +25,4 @@ bool skywatcher_set_goto_target(enum skywatcher_axis axis, int32_t target);
 bool skywatcher_set_aux(enum skywatcher_axis axis, bool on);
 bool skywatcher_set_ra_siderial_speed();
 bool skywatcher_set_dec_speed(double w_deg_per_s);
+bool skywatcher_set_ra_speed(double w_deg_per_s);
