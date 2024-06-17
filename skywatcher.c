@@ -239,11 +239,9 @@ private void* _skywatcher_mount_thread(void* data)
         skywatcher_get_position(SA_AXIS_2, &_status->axis_2_position);
         if (skywatcher != NULL)
         {
-            threading_lock_critical_section(&_cs);
             skywatcher(data);
-            threading_unlock_critical_section(&_cs);
         }
-        threading_sleep(TSR_MILLI, 10);
+        threading_sleep(TSR_MILLI, 100);
     }
     logging_log_message("mount thread stoped.", true);
 
@@ -324,26 +322,20 @@ bool skywatcher_set_ra_speed(double w_deg_per_s)
 {
     bool is_ok = false;
 
-    if (skywatcher_instant_stop(SA_AXIS_1))
+    if (skywatcher_set_speed(SA_AXIS_1, fabs(w_deg_per_s)))
     {
-        if (w_deg_per_s != 0.0)
+        static int32_t last_direction = -1;
+        bool direction = w_deg_per_s < 0.0;
+        if ((last_direction == -1) || (last_direction != direction ? 1 : 0))
         {
-            if (skywatcher_set_speed(SA_AXIS_1, fabs(w_deg_per_s)))
-            {
-                if (skywatcher_set_motion_mode(SA_AXIS_1, true, false, w_deg_per_s >= 0.0, false))
-                {
-                    is_ok = skywatcher_start_motion(SA_AXIS_1);
-                }
-            }
-            else
-            {
-                skywatcher_stop_motion(SA_AXIS_1);
-            }
+            skywatcher_set_motion_mode(SA_AXIS_1, true, false, direction, false);
+            last_direction = direction ? 1 : 0;
         }
-        else
-        {
-            is_ok = true;
-        }
+        is_ok = skywatcher_start_motion(SA_AXIS_1);
+    }
+    else
+    {
+        is_ok = skywatcher_stop_motion(SA_AXIS_1);
     }
 
     return is_ok;
@@ -353,26 +345,20 @@ bool skywatcher_set_dec_speed(double w_deg_per_s)
 {
     bool is_ok = false;
 
-    if (skywatcher_instant_stop(SA_AXIS_2))
+    if (skywatcher_set_speed(SA_AXIS_2, fabs(w_deg_per_s)))
     {
-        if (w_deg_per_s != 0.0)
+        static int32_t last_direction = -1;
+        bool direction = w_deg_per_s < 0.0;
+        if ((last_direction == -1) || (last_direction != direction ? 1 : 0))
         {
-            if (skywatcher_set_speed(SA_AXIS_2, fabs(w_deg_per_s)))
-            {
-                if (skywatcher_set_motion_mode(SA_AXIS_2, true, false, w_deg_per_s >= 0.0, false))
-                {
-                    is_ok = skywatcher_start_motion(SA_AXIS_2);
-                }
-            }
-            else
-            {
-                skywatcher_stop_motion(SA_AXIS_2);
-            }
+            skywatcher_set_motion_mode(SA_AXIS_2, true, false, direction, false);
+            last_direction = direction ? 1 : 0;
         }
-        else
-        {
-            is_ok = true;
-        }
+        is_ok = skywatcher_start_motion(SA_AXIS_2);
+    }
+    else
+    {
+        is_ok = skywatcher_stop_motion(SA_AXIS_2);
     }
 
     return is_ok;
@@ -469,6 +455,9 @@ bool skywatcher_get_speed(enum skywatcher_axis axis, double* angular_speed_degre
 bool skywatcher_set_speed(enum skywatcher_axis axis, double angular_speed_degrees_per_s)
 {
     bool is_ok = false;
+    char buffer[256] = {0};
+    sprintf(buffer, "%.6f", angular_speed_degrees_per_s);
+    logging_log_message(buffer, true);
     threading_lock_critical_section(&_cs);
     if (angular_speed_degrees_per_s >= 1.0e-6)
     {
@@ -494,10 +483,6 @@ bool skywatcher_set_speed(enum skywatcher_axis axis, double angular_speed_degree
         }
         
         is_ok = _buffer_out[0] == '=';
-    }
-    else
-    {
-        is_ok = skywatcher_stop_motion(axis);
     }
     threading_unlock_critical_section(&_cs);
     return is_ok;
