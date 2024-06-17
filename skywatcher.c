@@ -53,8 +53,6 @@ private pthread_t _thread_handle = THREADING_INVALID_THREADHANDLE;
 private bool _exit_thread = false;
 private skywatcher_status_t _status;
 
-callback_declaration(void, skywatcher(void* user_data));
-
 private void _skywatcher_get_buffer_out(data_t value, data_t buffer_out)
 {
     value[4] = buffer_out[1];
@@ -239,10 +237,6 @@ private void* _skywatcher_mount_thread(void* data)
     {
         skywatcher_get_position(SA_AXIS_1, &_status->axis_1_position);
         skywatcher_get_position(SA_AXIS_2, &_status->axis_2_position);
-        if (skywatcher != NULL)
-        {
-            skywatcher(data);
-        }
         threading_sleep(TSR_MILLI, 100);
     }
     logging_log_message("mount thread stoped.", true);
