@@ -3,10 +3,10 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <math.h>
-#include <api/api.h>
 #include <logging/logging.h>
-#include <threading/threading.h>
 #include <gst/gst.h>
+#include <api/api.h>
+#include <threading/threading.h>
 
 #define BIT_0 1
 #define BIT_1 2
@@ -51,6 +51,11 @@ private double _siderial_w_error_1_level_deg_per_s = 0.0;
 private double _siderial_w_error_2_level_deg_per_s = 0.0;
 private double _max_exposure_time_s = 0.0;
 private threading_critical_section _cs = {0};
+private pthread_t _thread_handle = THREADING_INVALID_THREADHANDLE;
+private bool _exit_thread = false;
+private skywatcher_status_t _status;
+
+callback_declaration(void, skywatcher(void* user_data));
 
 private void _skywatcher_get_buffer_out(data_t value)
 {
@@ -223,6 +228,38 @@ private void _skywatcher_put_buffer_to_buffer(data_t out, data_t in)
 private int32_t _skywatcher_convert_position_data(data_t value)
 {
     return _skywatcher_convert_data(value) - POSITION_OFFSET;
+}
+
+private void* _skywatcher_mount_thread(void* data)
+{
+    logging_log_message("mount thread started.", true);
+    while (_exit_thread == false)
+    {
+        skywatcher_get_position(SA_AXIS_1, &_status->axis_1_position);
+        skywatcher_get_position(SA_AXIS_2, &_status->axis_2_position);
+        if (skywatcher != NULL)
+        {
+            threading_lock_critical_section(&_cs);
+            skywatcher(data);
+            threading_unlock_critical_section(&_cs);
+        }
+        threading_sleep(TSR_MILLI, 10);
+    }
+    logging_log_message("mount thread stoped.", true);
+
+    return NULL;
+}
+
+void skywatcher_start_thread(skywatcher_status_t status, void* user_data)
+{
+    _status = status;
+    _thread_handle = threading_create_thread(_skywatcher_mount_thread, user_data);
+}
+
+void skywatcher_stop_thread()
+{
+    _exit_thread = true;
+    threading_join_thread(_thread_handle);
 }
 
 bool skywatcher_open(const char* ip)

@@ -61,3 +61,10 @@ typedef struct skywatcher_axis_status
     enum skywatcher_axis_state axis_state;
     enum skywatcher_init_state init_state;
 } *skywatcher_axis_status_t;
+
+typedef struct skywatcher_status
+{
+    int32_t axis_1_position;
+    int32_t axis_2_position;
+    void* user_data;
+} *skywatcher_status_t;
