@@ -235,8 +235,10 @@ private void* _skywatcher_mount_thread(void* data)
     logging_log_message("mount thread started.", true);
     while (_exit_thread == false)
     {
-        skywatcher_get_position(SA_AXIS_1, &_status->axis_1_position);
-        skywatcher_get_position(SA_AXIS_2, &_status->axis_2_position);
+        skywatcher_get_position(SA_AXIS_1, &_status->position[SA_AXIS_1]);
+        skywatcher_get_position(SA_AXIS_2, &_status->position[SA_AXIS_2]);
+        _status->deg[SA_AXIS_1] = (double) _status->position[SA_AXIS_1] / _cpr[SA_AXIS_1] * 360.0;
+        _status->deg[SA_AXIS_2] = (double) _status->position[SA_AXIS_2] / _cpr[SA_AXIS_2] * 360.0;
         threading_sleep(TSR_MILLI, 100);
     }
     logging_log_message("mount thread stoped.", true);
