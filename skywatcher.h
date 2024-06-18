@@ -28,3 +28,5 @@ bool skywatcher_set_dec_speed(double w_deg_per_s);
 bool skywatcher_set_ra_speed(double w_deg_per_s);
 void skywatcher_start_thread(skywatcher_status_t status, void* user_data);
 void skywatcher_stop_thread();
+void skywatcher_goto_home(enum skywatcher_axis axis, bool instant_stop);
+void skywatcher_goto_deg(enum skywatcher_axis axis, double degree);
