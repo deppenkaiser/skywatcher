@@ -246,13 +246,22 @@ private void* _skywatcher_mount_thread(void* data)
     return NULL;
 }
 
-bool skywatcher_goto_home(enum skywatcher_axis axis, bool instant_stop)
+void skywatcher_goto_home(enum skywatcher_axis axis, bool instant_stop)
 {
     if (instant_stop)
     {
         skywatcher_instant_stop(axis);
     }
     skywatcher_set_goto_target(axis, 0);
+    skywatcher_set_motion_mode(axis, false, false, false, false);
+    skywatcher_start_motion(axis);
+}
+
+void skywatcher_goto_deg(enum skywatcher_axis axis, double degree)
+{
+    degree = MIN(MAX(degree, -359.9999), 359.9999);
+    int32_t position = (int32_t) (degree *_cpr[axis] / 360.0);
+    skywatcher_set_goto_target(axis, position);
     skywatcher_set_motion_mode(axis, false, false, false, false);
     skywatcher_start_motion(axis);
 }
