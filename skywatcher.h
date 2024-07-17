@@ -1,6 +1,5 @@
 #pragma once
 
-#include <socket/socket.h>
 #include <stdbool.h>
 #include <stdint.h>
 
