@@ -7,6 +7,7 @@
 #include <gst/gst.h>
 #include <api/api.h>
 #include <threading/threading.h>
+#include <socket/socket.h>
 
 #define BIT_0 1
 #define BIT_1 2
@@ -96,22 +97,14 @@ private void _skywatcher_telegram(data_t buffer_in, data_t buffer_out)
         bool has_data = false;
         if (socket_send(_socket, buffer_in, strlen(buffer_in)))
         {
-            for (uint32_t retry_receive = 0; retry_receive < 5; ++retry_receive)
+            if (socket_receive(_socket, buffer_out, sizeof(data_t)) > 0)
             {
-                if (socket_receive(_socket, buffer_out, sizeof(data_t)) > 0)
-                {
-                    has_data = strlen(buffer_out) > 0;
-                    break;
-                }
-
-                logging_log_message("no data received!");
-                threading_sleep(TSR_MILLI, 100);
-            }
-
-            if (has_data)
-            {
+                has_data = true;
                 break;
             }
+
+            logging_log_message("no data received!");
+            threading_sleep(TSR_MILLI, 100);
         }
         else
         {
@@ -291,6 +284,9 @@ void skywatcher_goto_deg(enum skywatcher_axis axis, double degree)
     skywatcher_set_goto_target(axis, position);
     skywatcher_set_motion_mode(axis, false, false, false, false);
     skywatcher_start_motion(axis);
+    char buffer[256] = {0};
+    sprintf(buffer, "axis %d goto: %.2f", axis, degree);
+    logging_log_message(buffer);
 }
 
 void skywatcher_start_thread(skywatcher_status_t status, void* user_data)
