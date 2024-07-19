@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdint.h>
+
 enum skywatcher_axis
 {
     SA_NONE = 0,
@@ -70,3 +72,5 @@ typedef struct skywatcher_status
     double deg[3];
     void* user_data;
 } *skywatcher_status_t;
+
+typedef char data_t[16];
