@@ -64,6 +64,8 @@ typedef struct skywatcher_axis_status
 
 typedef struct skywatcher_status
 {
+    struct skywatcher_axis_status axis_status_1;
+    struct skywatcher_axis_status axis_status_2;
     int32_t position[3];
     double deg[3];
     void* user_data;
