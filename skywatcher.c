@@ -284,6 +284,9 @@ void skywatcher_goto_deg(enum skywatcher_axis axis, double degree)
     skywatcher_set_goto_target(axis, position);
     skywatcher_set_motion_mode(axis, false, false, false, false);
     skywatcher_start_motion(axis);
+    char buffer[256] = {0};
+    sprintf(buffer, "axis %d goto: %.2f", axis, degree);
+    logging_log_message(buffer);
 }
 
 void skywatcher_start_thread(skywatcher_status_t status, void* user_data)
