@@ -40,19 +40,59 @@
 #define CMD_GET_GOTO_TARGET     ":h%d\r"
 #define CMD_SET_AUX             ":O%d\r"
 
-typedef char data_t[16];
+protected_import(void, _skywatcher_execute(char* command, enum skywatcher_axis axis, data_t buffer_out));
+protected_import(void, _skywatcher_execute_with_param_1(char* command, enum skywatcher_axis axis, uint32_t value_1, data_t buffer_in, data_t buffer_out));
+protected_import(void, _skywatcher_execute_with_param_2(char* command, enum skywatcher_axis axis, uint32_t value_1, uint32_t value_2, data_t buffer_in, data_t buffer_out));
 
-private socket_handle_t _socket = SOCKET_INVALID_SOCKET;
+protected_import(socket_handle_t, _socket);
+
 private uint32_t _timer_frequency = 0;
 private uint32_t _cpr[3] = {0};
 private double _siderial_w_deg_per_s = 0.0;
 private double _siderial_w_error_1_level_deg_per_s = 0.0;
 private double _siderial_w_error_2_level_deg_per_s = 0.0;
 private double _max_exposure_time_s = 0.0;
-private threading_critical_section _cs = {0};
 private pthread_t _thread_handle = THREADING_INVALID_THREADHANDLE;
 private bool _exit_thread = false;
 private skywatcher_status_t _status;
+protected threading_critical_section _cs = {0};
+
+private void* _skywatcher_mount_thread(void* data)
+{
+    static struct skywatcher_axis_status last_status_axis_1 = {0};
+    static struct skywatcher_axis_status last_status_axis_2 = {0};
+
+    logging_log_message("mount thread started.");
+    while (_exit_thread == false)
+    {
+        skywatcher_get_position(SA_AXIS_1, &_status->position[SA_AXIS_1]);
+        skywatcher_get_position(SA_AXIS_2, &_status->position[SA_AXIS_2]);
+        _status->deg[SA_AXIS_1] = (double) _status->position[SA_AXIS_1] / _cpr[SA_AXIS_1] * 360.0;
+        _status->deg[SA_AXIS_2] = (double) _status->position[SA_AXIS_2] / _cpr[SA_AXIS_2] * 360.0;
+        skywatcher_get_axis_status(SA_AXIS_1, &_status->axis_status_1);
+        skywatcher_get_axis_status(SA_AXIS_2, &_status->axis_status_2);
+
+        if ((_status->axis_status_1.mode != last_status_axis_1.mode) && (last_status_axis_1.mode == SM_GOTO))
+        {
+            skywatcher_set_motion_mode(SA_AXIS_1, false, false, false, false);
+            skywatcher_start_motion(SA_AXIS_1);
+        }
+
+        if ((_status->axis_status_1.mode != last_status_axis_1.mode) && (last_status_axis_1.mode == SM_GOTO))
+        {
+            skywatcher_set_motion_mode(SA_AXIS_2, false, false, false, false);
+            skywatcher_start_motion(SA_AXIS_2);
+        }
+
+        last_status_axis_1 = _status->axis_status_1;
+        last_status_axis_2 = _status->axis_status_2;
+
+        threading_sleep(TSR_MILLI, 100);
+    }
+    logging_log_message("mount thread stoped.");
+
+    return NULL;
+}
 
 private void _skywatcher_get_buffer_out(data_t value, data_t buffer_out)
 {
@@ -87,71 +127,6 @@ private double _skywatcher_calculate_max_exposure_time_s(double pixel_size_um, d
     double phi_pixel_rad = atan2(pixel_size_um * 1.0e-3, focal_length_mm);
     double phi_pixel_deg = phi_pixel_rad / acos(-1) * 180.0;
     return fabs(phi_pixel_deg / _siderial_w_error_2_level_deg_per_s);
-}
-
-private void _skywatcher_telegram(data_t buffer_in, data_t buffer_out)
-{
-    threading_lock_critical_section(&_cs);
-    for (uint32_t retry_send = 0; retry_send < 5; ++retry_send)
-    {
-        bool has_data = false;
-        if (socket_send(_socket, buffer_in, strlen(buffer_in)))
-        {
-            if (socket_receive(_socket, buffer_out, sizeof(data_t)) > 0)
-            {
-                has_data = true;
-                break;
-            }
-
-            logging_log_message("no data received!");
-            threading_sleep(TSR_MILLI, 100);
-        }
-        else
-        {
-            char buffer[256] = {0};
-            string_copy(buffer, sizeof(buffer), buffer_in);
-            string_cat(buffer, sizeof(buffer), " data not sent!");
-            logging_log_message(buffer);
-        }
-    }
-    threading_unlock_critical_section(&_cs);
-}
-
-private void _skywatcher_execute(char* command, enum skywatcher_axis axis, data_t buffer_out)
-{
-    data_t buffer_in = {0};
-    threading_lock_critical_section(&_cs);
-    memset(buffer_out, 0, sizeof(data_t));
-    if (axis != SA_NONE)
-    {
-        sprintf(buffer_in, command, axis);
-    }
-    else
-    {
-        memcpy(buffer_in, command, strlen(command));
-    }
-    _skywatcher_telegram(buffer_in, buffer_out);
-    threading_unlock_critical_section(&_cs);
-}
-
-private void _skywatcher_execute_with_param_1(char* command, enum skywatcher_axis axis, uint32_t value_1, data_t buffer_in, data_t buffer_out)
-{
-    threading_lock_critical_section(&_cs);
-    memset(buffer_in, 0, sizeof(data_t));
-    memset(buffer_out, 0, sizeof(data_t));
-    sprintf(buffer_in, command, axis, value_1);
-    _skywatcher_telegram(buffer_in, buffer_out);
-    threading_unlock_critical_section(&_cs);
-}
-
-private void _skywatcher_execute_with_param_2(char* command, enum skywatcher_axis axis, uint32_t value_1, uint32_t value_2, data_t buffer_in, data_t buffer_out)
-{
-    threading_lock_critical_section(&_cs);
-    memset(buffer_in, 0, sizeof(data_t));
-    memset(buffer_out, 0, sizeof(data_t));
-    sprintf(buffer_in, command, axis, value_1, value_2);
-    _skywatcher_telegram(buffer_in, buffer_out);
-    threading_unlock_critical_section(&_cs);
 }
 
 private bool _skywatcher_initialize_axis(enum skywatcher_axis axis)
@@ -248,22 +223,6 @@ private void _skywatcher_put_buffer_to_buffer(data_t out, data_t in)
 private int32_t _skywatcher_convert_position_data(data_t value)
 {
     return _skywatcher_convert_data(value) - POSITION_OFFSET;
-}
-
-private void* _skywatcher_mount_thread(void* data)
-{
-    logging_log_message("mount thread started.");
-    while (_exit_thread == false)
-    {
-        skywatcher_get_position(SA_AXIS_1, &_status->position[SA_AXIS_1]);
-        skywatcher_get_position(SA_AXIS_2, &_status->position[SA_AXIS_2]);
-        _status->deg[SA_AXIS_1] = (double) _status->position[SA_AXIS_1] / _cpr[SA_AXIS_1] * 360.0;
-        _status->deg[SA_AXIS_2] = (double) _status->position[SA_AXIS_2] / _cpr[SA_AXIS_2] * 360.0;
-        threading_sleep(TSR_MILLI, 100);
-    }
-    logging_log_message("mount thread stoped.");
-
-    return NULL;
 }
 
 void skywatcher_goto_home(enum skywatcher_axis axis, bool instant_stop)
