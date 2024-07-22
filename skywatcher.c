@@ -8,6 +8,7 @@
 #include <api/api.h>
 #include <threading/threading.h>
 #include <socket/socket.h>
+#include <physics/physics.h>
 
 #define BIT_0 1
 #define BIT_1 2
@@ -67,7 +68,7 @@ private void* _skywatcher_mount_thread(void* data)
     {
         skywatcher_get_position(SA_AXIS_1, &_status->position[SA_AXIS_1]);
         skywatcher_get_position(SA_AXIS_2, &_status->position[SA_AXIS_2]);
-        _status->deg[SA_AXIS_1] = (double) _status->position[SA_AXIS_1] / _cpr[SA_AXIS_1] * 360.0;
+        _status->deg[SA_AXIS_1] = physics_modulo((double) _status->position[SA_AXIS_1] / _cpr[SA_AXIS_1] * 360.0 + 360.0, 360.0);
         _status->deg[SA_AXIS_2] = (double) _status->position[SA_AXIS_2] / _cpr[SA_AXIS_2] * 360.0;
         skywatcher_get_axis_status(SA_AXIS_1, &_status->axis_status_1);
         skywatcher_get_axis_status(SA_AXIS_2, &_status->axis_status_2);
@@ -238,7 +239,13 @@ void skywatcher_goto_home(enum skywatcher_axis axis, bool instant_stop)
 
 void skywatcher_goto_deg(enum skywatcher_axis axis, double degree)
 {
-    degree = MIN(MAX(degree, -359.9999), 359.9999);
+    degree = physics_modulo(degree, 360.0);
+    
+    if (axis == SA_AXIS_1)
+    {
+        degree = degree > 180.0 ? degree - 360.0 : degree;
+    }
+
     int32_t position = (int32_t) (degree *_cpr[axis] / 360.0);
     skywatcher_set_goto_target(axis, position);
     skywatcher_set_motion_mode(axis, false, false, false, false);
