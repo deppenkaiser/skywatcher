@@ -238,11 +238,10 @@ void skywatcher_goto_home(enum skywatcher_axis axis, bool instant_stop)
 }
 
 void skywatcher_goto_deg(enum skywatcher_axis axis, double degree)
-{
-    degree = physics_modulo(degree, 360.0);
-    
+{  
     if (axis == SA_AXIS_1)
     {
+        degree = physics_modulo(degree, 360.0);
         degree = degree > 180.0 ? degree - 360.0 : degree;
     }
 
