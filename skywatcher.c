@@ -79,7 +79,7 @@ private void* _skywatcher_mount_thread(void* data)
             skywatcher_start_motion(SA_AXIS_1);
         }
 
-        if ((_status->axis_status_1.mode != last_status_axis_1.mode) && (last_status_axis_1.mode == SM_GOTO))
+        if ((_status->axis_status_2.mode != last_status_axis_2.mode) && (last_status_axis_2.mode == SM_GOTO))
         {
             skywatcher_set_motion_mode(SA_AXIS_2, false, false, false, false);
             skywatcher_start_motion(SA_AXIS_2);
@@ -238,11 +238,10 @@ void skywatcher_goto_home(enum skywatcher_axis axis, bool instant_stop)
 }
 
 void skywatcher_goto_deg(enum skywatcher_axis axis, double degree)
-{
-    degree = physics_modulo(degree, 360.0);
-    
+{  
     if (axis == SA_AXIS_1)
     {
+        degree = physics_modulo(degree, 360.0);
         degree = degree > 180.0 ? degree - 360.0 : degree;
     }
 
@@ -562,6 +561,12 @@ bool skywatcher_set_position(enum skywatcher_axis axis, int32_t position)
     if (is_ok == false)
     {
         logging_log_message("error: skywatcher_set_position");
+    }
+    else
+    {
+        char string[256] = {0};
+        sprintf(string, "position axis %d: %d", axis, position);
+        logging_log_message(string);
     }
     threading_unlock_critical_section(&_cs);
     return is_ok;
