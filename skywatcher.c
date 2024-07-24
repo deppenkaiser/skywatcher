@@ -79,7 +79,7 @@ private void* _skywatcher_mount_thread(void* data)
             skywatcher_start_motion(SA_AXIS_1);
         }
 
-        if ((_status->axis_status_1.mode != last_status_axis_1.mode) && (last_status_axis_1.mode == SM_GOTO))
+        if ((_status->axis_status_2.mode != last_status_axis_2.mode) && (last_status_axis_2.mode == SM_GOTO))
         {
             skywatcher_set_motion_mode(SA_AXIS_2, false, false, false, false);
             skywatcher_start_motion(SA_AXIS_2);
