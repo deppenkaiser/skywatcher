@@ -562,6 +562,12 @@ bool skywatcher_set_position(enum skywatcher_axis axis, int32_t position)
     {
         logging_log_message("error: skywatcher_set_position");
     }
+    else
+    {
+        char string[256] = {0};
+        sprintf(string, "position axis %d: %d", axis, position);
+        logging_log_message(string);
+    }
     threading_unlock_critical_section(&_cs);
     return is_ok;
 }
