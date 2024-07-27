@@ -27,7 +27,7 @@ private void _skywatcher_telegram(data_t buffer_in, data_t buffer_out)
             }
 
             logging_log_message("no data received!");
-            threading_sleep(TSR_MILLI, 100);
+            threading_sleep(TTR_MILLI, 100);
         }
         else
         {
