@@ -88,7 +88,7 @@ private void* _skywatcher_mount_thread(void* data)
         last_status_axis_1 = _status->axis_status_1;
         last_status_axis_2 = _status->axis_status_2;
 
-        threading_sleep(TSR_MILLI, 100);
+        threading_sleep(TTR_MILLI, 100);
     }
     logging_log_message("mount thread stoped.");
 
