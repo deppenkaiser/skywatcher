@@ -251,6 +251,7 @@ void skywatcher_goto_deg(enum skywatcher_axis axis, double degree)
     }
 
     int32_t position = (int32_t) (degree *_cpr[axis] / 360.0);
+    skywatcher_stop_motion(axis);
     skywatcher_set_goto_target(axis, position);
     skywatcher_set_motion_mode(axis, false, false, false, false);
     skywatcher_start_motion(axis);
