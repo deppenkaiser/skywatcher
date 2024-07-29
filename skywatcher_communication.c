@@ -20,21 +20,12 @@ private void _skywatcher_telegram(data_t buffer_in, data_t buffer_out)
         bool has_data = false;
         if (socket_send(_socket, buffer_in, strlen(buffer_in)))
         {
+            threading_sleep(TTR_MILLI, 10);
             if (socket_receive(_socket, buffer_out, sizeof(data_t)) > 0)
             {
                 has_data = true;
                 break;
             }
-
-            logging_log_message("no data received!");
-            threading_sleep(TTR_MILLI, 100);
-        }
-        else
-        {
-            char buffer[256] = {0};
-            string_copy(buffer, sizeof(buffer), buffer_in);
-            string_cat(buffer, sizeof(buffer), " data not sent!");
-            logging_log_message(buffer);
         }
     }
     threading_unlock_critical_section(&_cs);
