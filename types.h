@@ -64,6 +64,8 @@ typedef struct skywatcher_axis_status
     enum skywatcher_init_state init_state;
 } *skywatcher_axis_status_t;
 
+typedef void (*skywatcher_goto_callback_t)(enum skywatcher_axis axis, void* user_data);
+
 typedef struct skywatcher_status
 {
     struct skywatcher_axis_status axis_status_1;
@@ -71,6 +73,7 @@ typedef struct skywatcher_status
     int32_t position[3];
     double deg[3];
     void* user_data;
+    skywatcher_goto_callback_t goto_callback;
 } *skywatcher_status_t;
 
 typedef char data_t[16];

@@ -53,7 +53,8 @@ private double _siderial_w_deg_per_s = 0.0;
 private double _siderial_w_error_1_level_deg_per_s = 0.0;
 private double _siderial_w_error_2_level_deg_per_s = 0.0;
 private double _max_exposure_time_s = 0.0;
-private pthread_t _thread_handle = THREADING_INVALID_THREADHANDLE;
+private pthread_t _thread_handle_axis_1 = THREADING_INVALID_THREADHANDLE;
+private pthread_t _thread_handle_axis_2 = THREADING_INVALID_THREADHANDLE;
 private bool _exit_thread = false;
 private skywatcher_status_t _status;
 protected threading_critical_section _cs = {0};
@@ -95,41 +96,66 @@ private bool skywatcher_set_motion_mode(enum skywatcher_axis axis, bool tracking
     return is_ok;
 }
 
-private void* _skywatcher_mount_thread(void* data)
+private void* _skywatcher_mount_thread_axis_1(void* data)
 {
     static struct skywatcher_axis_status last_status_axis_1 = {0};
-    static struct skywatcher_axis_status last_status_axis_2 = {0};
 
-    logging_log_message("mount thread started.");
+    logging_log_message("mount thread axis 1 started.");
     while (_exit_thread == false)
     {
         skywatcher_get_position(SA_AXIS_1, &_status->position[SA_AXIS_1]);
-        skywatcher_get_position(SA_AXIS_2, &_status->position[SA_AXIS_2]);
         _status->deg[SA_AXIS_1] = physics_modulo((double) _status->position[SA_AXIS_1] / _cpr[SA_AXIS_1] * 360.0 + 360.0, 360.0);
-        _status->deg[SA_AXIS_2] = (double) _status->position[SA_AXIS_2] / _cpr[SA_AXIS_2] * 360.0;
         skywatcher_get_axis_status(SA_AXIS_1, &_status->axis_status_1);
-        skywatcher_get_axis_status(SA_AXIS_2, &_status->axis_status_2);
 
         // restart if goto is active
-        if ((_status->axis_status_1.mode != last_status_axis_1.mode) && (last_status_axis_1.mode == SM_GOTO))
+        if ((_status->axis_status_1.mode != last_status_axis_1.mode))
         {
-            skywatcher_set_motion_mode(SA_AXIS_1, false, false, false, false);
-            skywatcher_start_motion(SA_AXIS_1);
+            if (last_status_axis_1.mode == SM_GOTO)
+            {
+                if (_status->goto_callback != NULL)
+                {
+                    _status->goto_callback(SA_AXIS_1, _status->user_data);
+                }
+            }
+            
+            last_status_axis_1 = _status->axis_status_1;
         }
-
-        // restart if goto is active
-        if ((_status->axis_status_2.mode != last_status_axis_2.mode) && (last_status_axis_2.mode == SM_GOTO))
-        {
-            skywatcher_set_motion_mode(SA_AXIS_2, false, false, false, false);
-            skywatcher_start_motion(SA_AXIS_2);
-        }
-
-        last_status_axis_1 = _status->axis_status_1;
-        last_status_axis_2 = _status->axis_status_2;
 
         threading_sleep(TTR_MILLI, 100);
     }
-    logging_log_message("mount thread stoped.");
+    logging_log_message("mount thread axis 1 stoped.");
+
+    return NULL;
+}
+
+private void* _skywatcher_mount_thread_axis_2(void* data)
+{
+    static struct skywatcher_axis_status last_status_axis_2 = {0};
+
+    logging_log_message("mount thread axis 2 started.");
+    while (_exit_thread == false)
+    {
+        skywatcher_get_position(SA_AXIS_2, &_status->position[SA_AXIS_2]);
+        _status->deg[SA_AXIS_2] = (double) _status->position[SA_AXIS_2] / _cpr[SA_AXIS_2] * 360.0;
+        skywatcher_get_axis_status(SA_AXIS_2, &_status->axis_status_2);
+
+        // restart if goto is active
+        if ((_status->axis_status_2.mode != last_status_axis_2.mode))
+        {
+            if (last_status_axis_2.mode == SM_GOTO)
+            {
+                if (_status->goto_callback != NULL)
+                {
+                    _status->goto_callback(SA_AXIS_2, _status->user_data);
+                }
+            }
+
+            last_status_axis_2 = _status->axis_status_2;
+        }
+
+        threading_sleep(TTR_MILLI, 100);
+    }
+    logging_log_message("mount thread axis 2 stoped.");
 
     return NULL;
 }
@@ -310,13 +336,16 @@ void skywatcher_goto_deg(enum skywatcher_axis axis, double degree)
 void skywatcher_start_thread(skywatcher_status_t status, void* user_data)
 {
     _status = status;
-    _thread_handle = threading_create_thread(_skywatcher_mount_thread, user_data);
+    _status->user_data = user_data;
+    _thread_handle_axis_1 = threading_create_thread(_skywatcher_mount_thread_axis_1, user_data);
+    _thread_handle_axis_2 = threading_create_thread(_skywatcher_mount_thread_axis_2, user_data);
 }
 
 void skywatcher_stop_thread()
 {
     _exit_thread = true;
-    threading_join_thread(_thread_handle);
+    threading_join_thread(_thread_handle_axis_1);
+    threading_join_thread(_thread_handle_axis_2);
 }
 
 bool skywatcher_open(const char* ip)
