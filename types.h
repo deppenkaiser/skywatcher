@@ -11,8 +11,8 @@ enum skywatcher_axis
 
 enum skywatcher_mode
 {
-    SM_GOTO = 0,
-    SM_TRACKING = 1
+    SM_TRACKING = 0,
+    SM_GOTO = 1
 };
 
 enum skywatcher_direction
