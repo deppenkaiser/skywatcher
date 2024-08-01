@@ -27,3 +27,7 @@ target_include_directories(skywatcher PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}/../vector
     ${GST_INCLUDE_DIRS}
 )
+
+target_link_libraries(skywatcher
+    physics
+)

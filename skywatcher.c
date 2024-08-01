@@ -371,22 +371,19 @@ void skywatcher_close()
     threading_critical_section_destroy(&_cs);
 }
 
-bool skywatcher_initialize_axis(double pixel_size_um, double focal_length_mm)
+bool skywatcher_initialize_axis()
 {
     bool is_ok = false;
     threading_critical_section_lock(&_cs);
-
     if (_skywatcher_initialize_axis(SA_AXIS_1) && _skywatcher_initialize_axis(SA_AXIS_2))
     {
         if (_skywatcher_get_timer_frequency(&_timer_frequency) && _skywatcher_get_cpr(SA_AXIS_1, &_cpr[SA_AXIS_1]) &&
                 _skywatcher_get_cpr(SA_AXIS_2, &_cpr[SA_AXIS_2]))
         {
             _skywatcher_calculate_siderial_angular_speed_deg_per_s();
-            _max_exposure_time_s = _skywatcher_calculate_max_exposure_time_s(pixel_size_um, focal_length_mm);
             is_ok = true;
         }
     }
-
     threading_critical_section_unlock(&_cs);
     return is_ok;
 }

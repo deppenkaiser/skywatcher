@@ -7,7 +7,7 @@
 
 bool skywatcher_open(const char* ip);
 void skywatcher_close();
-bool skywatcher_initialize_axis(double pixel_size_um, double focal_length_mm);
+bool skywatcher_initialize_axis();
 bool skywatcher_start_motion(enum skywatcher_axis axis);
 bool skywatcher_stop_motion(enum skywatcher_axis axis);
 bool skywatcher_instant_stop(enum skywatcher_axis axis);
