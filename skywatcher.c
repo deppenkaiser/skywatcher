@@ -351,7 +351,6 @@ void skywatcher_stop_thread()
 bool skywatcher_open(const char* ip)
 {
     bool connected = false;
-
     threading_critical_section_initialize(&_cs);
     _socket = socket_create_socket(1, false);
     if (socket_ping(ip))
@@ -361,7 +360,6 @@ bool skywatcher_open(const char* ip)
         socket_connect(_socket, ip, 11880);
         connected = true;
     }
-
     return connected;
 }
 
