@@ -1,4 +1,4 @@
-#include "skywatcher.h"
+#include "skywatcher/skywatcher.h"
 
 #include <stdio.h>
 #include <ctype.h>
@@ -89,10 +89,10 @@ private bool skywatcher_set_motion_mode(enum skywatcher_axis axis, bool tracking
     data_t buffer_in = {0}, buffer_out = {0};
     uint32_t param_1 = BIT_2 | (fast ? BIT_1 : 0) | (tracking ? BIT_0 : 0);
     uint32_t param_2 = (south ? BIT_1 : 0) | (ccw ? BIT_0 : 0);
-    threading_lock_critical_section(&_cs);
+    threading_critical_section_lock(&_cs);
     _skywatcher_execute_with_param_2(CMD_SET_MOTION_MODE, axis, param_1, param_2, buffer_in, buffer_out);
     bool is_ok = skywatcher_check_error(buffer_out, "skywatcher_set_motion_mode");
-    threading_unlock_critical_section(&_cs);
+    threading_critical_section_unlock(&_cs);
     return is_ok;
 }
 
@@ -121,7 +121,7 @@ private void* _skywatcher_mount_thread_axis_1(void* data)
             last_status_axis_1 = _status->axis_status_1;
         }
 
-        threading_sleep(TTR_MILLI, 100);
+        threading_thread_sleep(TTR_MILLI, 100);
     }
     logging_log_message("mount thread axis 1 stoped.");
 
@@ -153,7 +153,7 @@ private void* _skywatcher_mount_thread_axis_2(void* data)
             last_status_axis_2 = _status->axis_status_2;
         }
 
-        threading_sleep(TTR_MILLI, 100);
+        threading_thread_sleep(TTR_MILLI, 100);
     }
     logging_log_message("mount thread axis 2 stoped.");
 
@@ -190,7 +190,7 @@ private bool skywatcher_set_speed(enum skywatcher_axis axis, double angular_spee
 {
     data_t buffer_in = {0}, buffer_out = {0};
     bool is_ok = false;
-    threading_lock_critical_section(&_cs);
+    threading_critical_section_lock(&_cs);
     if (angular_speed_degrees_per_s >= 1.0e-6)
     {
         data_t value = {0}, value_shift = {0};
@@ -215,7 +215,7 @@ private bool skywatcher_set_speed(enum skywatcher_axis axis, double angular_spee
         
         is_ok = skywatcher_check_error(buffer_out, "skywatcher_set_speed");
     }
-    threading_unlock_critical_section(&_cs);
+    threading_critical_section_unlock(&_cs);
     return is_ok;
 }
 
@@ -241,20 +241,20 @@ private double _skywatcher_calculate_max_exposure_time_s(double pixel_size_um, d
 private bool _skywatcher_initialize_axis(enum skywatcher_axis axis)
 {
     data_t buffer_out = {0};
-    threading_lock_critical_section(&_cs);
+    threading_critical_section_lock(&_cs);
     _skywatcher_execute(CMD_INIT, axis, buffer_out);
     bool is_ok = skywatcher_check_error(buffer_out, "_skywatcher_initialize_axis");
-    threading_unlock_critical_section(&_cs);
+    threading_critical_section_unlock(&_cs);
     return is_ok;
 }
 
 private bool _skywatcher_get_motor_board_version(enum skywatcher_axis axis)
 {
     data_t buffer_out = {0};
-    threading_lock_critical_section(&_cs);
+    threading_critical_section_lock(&_cs);
     _skywatcher_execute(CMD_GET_BOARD_VERSION, axis, buffer_out);
     bool is_ok = skywatcher_check_error(buffer_out, "_skywatcher_get_motor_board_version");
-    threading_unlock_critical_section(&_cs);
+    threading_critical_section_unlock(&_cs);
     return is_ok;
 }
 
@@ -262,7 +262,7 @@ private bool _skywatcher_get_timer_frequency(uint32_t* frequency)
 {
     data_t buffer_out = {0};
     data_t value = {0};
-    threading_lock_critical_section(&_cs);
+    threading_critical_section_lock(&_cs);
     _skywatcher_execute(CMD_GET_TIMER_FREQUENCY, SA_NONE, buffer_out);
     bool is_ok = skywatcher_check_error(buffer_out, "_skywatcher_get_timer_frequency");
     if (is_ok)
@@ -270,7 +270,7 @@ private bool _skywatcher_get_timer_frequency(uint32_t* frequency)
         _skywatcher_get_buffer_out(value, buffer_out);
         *frequency = _skywatcher_convert_data(value);
     }
-    threading_unlock_critical_section(&_cs);
+    threading_critical_section_unlock(&_cs);
     return is_ok;
 }
 
@@ -278,7 +278,7 @@ private bool _skywatcher_get_cpr(enum skywatcher_axis axis, uint32_t* cpr)
 {
     data_t buffer_out = {0};
     data_t value = {0};
-    threading_lock_critical_section(&_cs);
+    threading_critical_section_lock(&_cs);
     _skywatcher_execute(CMD_GET_CPR, axis, buffer_out);
     bool is_ok = skywatcher_check_error(buffer_out, "_skywatcher_get_cpr");
     if (is_ok)
@@ -286,16 +286,16 @@ private bool _skywatcher_get_cpr(enum skywatcher_axis axis, uint32_t* cpr)
         _skywatcher_get_buffer_out(value, buffer_out);
         *cpr = _skywatcher_convert_data(value);
     }
-    threading_unlock_critical_section(&_cs);
+    threading_critical_section_unlock(&_cs);
     return is_ok;
 }
 
 private bool _skywatcher_get_axis_status(enum skywatcher_axis axis, data_t buffer_out)
 {
-    threading_lock_critical_section(&_cs);
+    threading_critical_section_lock(&_cs);
     _skywatcher_execute(CMD_STATUS, axis, buffer_out);
     bool is_ok = skywatcher_check_error(buffer_out, "_skywatcher_get_axis_status");
-    threading_unlock_critical_section(&_cs);
+    threading_critical_section_unlock(&_cs);
     return is_ok;
 }
 
@@ -337,22 +337,21 @@ void skywatcher_start_thread(skywatcher_status_t status, void* user_data)
 {
     _status = status;
     _status->user_data = user_data;
-    _thread_handle_axis_1 = threading_create_thread(_skywatcher_mount_thread_axis_1, user_data);
-    _thread_handle_axis_2 = threading_create_thread(_skywatcher_mount_thread_axis_2, user_data);
+    _thread_handle_axis_1 = threading_thread_create(_skywatcher_mount_thread_axis_1, user_data);
+    _thread_handle_axis_2 = threading_thread_create(_skywatcher_mount_thread_axis_2, user_data);
 }
 
 void skywatcher_stop_thread()
 {
     _exit_thread = true;
-    threading_join_thread(_thread_handle_axis_1);
-    threading_join_thread(_thread_handle_axis_2);
+    threading_thread_join(_thread_handle_axis_1);
+    threading_thread_join(_thread_handle_axis_2);
 }
 
 bool skywatcher_open(const char* ip)
 {
     bool connected = false;
-
-    threading_initialize_critical_section(&_cs);
+    threading_critical_section_initialize(&_cs);
     _socket = socket_create_socket(1, false);
     if (socket_ping(ip))
     {
@@ -361,33 +360,29 @@ bool skywatcher_open(const char* ip)
         socket_connect(_socket, ip, 11880);
         connected = true;
     }
-
     return connected;
 }
 
 void skywatcher_close()
 {
     socket_close(&_socket);
-    threading_destroy_critical_section(&_cs);
+    threading_critical_section_destroy(&_cs);
 }
 
-bool skywatcher_initialize_axis(double pixel_size_um, double focal_length_mm)
+bool skywatcher_initialize_axis()
 {
     bool is_ok = false;
-    threading_lock_critical_section(&_cs);
-
+    threading_critical_section_lock(&_cs);
     if (_skywatcher_initialize_axis(SA_AXIS_1) && _skywatcher_initialize_axis(SA_AXIS_2))
     {
         if (_skywatcher_get_timer_frequency(&_timer_frequency) && _skywatcher_get_cpr(SA_AXIS_1, &_cpr[SA_AXIS_1]) &&
                 _skywatcher_get_cpr(SA_AXIS_2, &_cpr[SA_AXIS_2]))
         {
             _skywatcher_calculate_siderial_angular_speed_deg_per_s();
-            _max_exposure_time_s = _skywatcher_calculate_max_exposure_time_s(pixel_size_um, focal_length_mm);
             is_ok = true;
         }
     }
-
-    threading_unlock_critical_section(&_cs);
+    threading_critical_section_unlock(&_cs);
     return is_ok;
 }
 
@@ -455,57 +450,57 @@ bool skywatcher_set_axis_2_speed_and_start(double w_deg_per_s)
 bool skywatcher_set_axis_sleep(enum skywatcher_axis axis, bool sleep)
 {
     data_t buffer_in = {0}, buffer_out = {0};
-    threading_lock_critical_section(&_cs);
+    threading_critical_section_lock(&_cs);
     _skywatcher_execute_with_param_1(CMD_SLEEP, axis, sleep ? SAS_BLOCKED : SAS_NORMAL, buffer_in, buffer_out);
     bool is_ok = skywatcher_check_error(buffer_out, "skywatcher_set_axis_sleep");
-    threading_unlock_critical_section(&_cs);
+    threading_critical_section_unlock(&_cs);
     return is_ok;
 }
 
 bool skywatcher_set_aux(enum skywatcher_axis axis, bool on)
 {
     data_t buffer_in = {0}, buffer_out = {0};
-    threading_lock_critical_section(&_cs);
+    threading_critical_section_lock(&_cs);
     _skywatcher_execute_with_param_1(CMD_SET_AUX, axis, on ? '1' : '0', buffer_in, buffer_out);
     bool is_ok = skywatcher_check_error(buffer_out, "skywatcher_set_aux");
-    threading_unlock_critical_section(&_cs);
+    threading_critical_section_unlock(&_cs);
     return is_ok;
 }
 
 bool skywatcher_start_motion(enum skywatcher_axis axis)
 {
     data_t buffer_out = {0};
-    threading_lock_critical_section(&_cs);
+    threading_critical_section_lock(&_cs);
     _skywatcher_execute(CMD_START_MOTION, axis, buffer_out);
     bool is_ok = skywatcher_check_error(buffer_out, "skywatcher_start_motion");
-    threading_unlock_critical_section(&_cs);
+    threading_critical_section_unlock(&_cs);
     return is_ok;
 }
 
 bool skywatcher_stop_motion(enum skywatcher_axis axis)
 {
     data_t buffer_out = {0};
-    threading_lock_critical_section(&_cs);
+    threading_critical_section_lock(&_cs);
     _skywatcher_execute(CMD_STOP_MOTION, axis, buffer_out);
     bool is_ok = skywatcher_check_error(buffer_out, "skywatcher_stop_motion");
-    threading_unlock_critical_section(&_cs);
+    threading_critical_section_unlock(&_cs);
     return is_ok;
 }
 
 bool skywatcher_instant_stop(enum skywatcher_axis axis)
 {
     data_t buffer_out = {0};
-    threading_lock_critical_section(&_cs);
+    threading_critical_section_lock(&_cs);
     _skywatcher_execute(CMD_INSTANT_STOP, axis, buffer_out);
     bool is_ok = skywatcher_check_error(buffer_out, "skywatcher_instant_stop");
-    threading_unlock_critical_section(&_cs);
+    threading_critical_section_unlock(&_cs);
     return is_ok;
 }
 
 bool skywatcher_get_axis_status(enum skywatcher_axis axis, skywatcher_axis_status_t status)
 {
     data_t buffer_out = {0};
-    threading_lock_critical_section(&_cs);
+    threading_critical_section_lock(&_cs);
     bool is_ok = _skywatcher_get_axis_status(axis, buffer_out);
     char db_1 = buffer_out[1];
     char db_2 = buffer_out[2];
@@ -516,7 +511,7 @@ bool skywatcher_get_axis_status(enum skywatcher_axis axis, skywatcher_axis_statu
     status->action = (db_2 && BIT_0) > 0 ? SAA_RUNNING : SAA_STOPPED;
     status->axis_state = (db_2 && BIT_1) > 0 ? SAS_BLOCKED : SAS_NORMAL;
     status->init_state = (db_3 && BIT_0) > 0 ? SIS_DONE : SIS_NOT_INIT;
-    threading_unlock_critical_section(&_cs);
+    threading_critical_section_unlock(&_cs);
     return is_ok;
 }
 
@@ -524,7 +519,7 @@ bool skywatcher_get_speed(enum skywatcher_axis axis, double* angular_speed_degre
 {
     data_t buffer_out = {0};
     data_t value = {0};
-    threading_lock_critical_section(&_cs);
+    threading_critical_section_lock(&_cs);
     _skywatcher_execute(CMD_GET_SPEED, axis, buffer_out);
     _skywatcher_get_buffer_out(value, buffer_out);
     char* endptr = NULL;
@@ -532,7 +527,7 @@ bool skywatcher_get_speed(enum skywatcher_axis axis, double* angular_speed_degre
     double counts_per_s = _timer_frequency / (double) preset;
     *angular_speed_degrees_per_s = counts_per_s * 360.0 / (double) _cpr[axis];
     bool is_ok = skywatcher_check_error(buffer_out, "skywatcher_get_speed");
-    threading_unlock_critical_section(&_cs);
+    threading_critical_section_unlock(&_cs);
     return is_ok;
 }
 
@@ -540,12 +535,12 @@ bool skywatcher_get_position(enum skywatcher_axis axis, int32_t* position)
 {
     data_t buffer_out = {0};
     data_t value = {0};
-    threading_lock_critical_section(&_cs);
+    threading_critical_section_lock(&_cs);
     _skywatcher_execute(CMD_GET_POSITION, axis, buffer_out);
     _skywatcher_get_buffer_out(value, buffer_out);
     *position = _skywatcher_convert_position_data(value);
     bool is_ok = skywatcher_check_error(buffer_out, "skywatcher_get_position");
-    threading_unlock_critical_section(&_cs);
+    threading_critical_section_unlock(&_cs);
     return is_ok;
 }
 
@@ -556,7 +551,7 @@ bool skywatcher_set_position(enum skywatcher_axis axis, int32_t position)
     sprintf(buffer, CMD_SET_POSITION, axis);
     sprintf(value, "%x", position + POSITION_OFFSET);
     _skywatcher_put_buffer_to_buffer(buffer, value);
-    threading_lock_critical_section(&_cs);
+    threading_critical_section_lock(&_cs);
     _skywatcher_execute(buffer, SA_NONE, buffer_out);
     bool is_ok = skywatcher_check_error(buffer_out, "skywatcher_set_position");
     if (is_ok)
@@ -565,7 +560,7 @@ bool skywatcher_set_position(enum skywatcher_axis axis, int32_t position)
         sprintf(string, "position axis %d: %d", axis, position);
         logging_log_message(string);
     }
-    threading_unlock_critical_section(&_cs);
+    threading_critical_section_unlock(&_cs);
     return is_ok;
 }
 
@@ -573,12 +568,12 @@ bool skywatcher_get_axis_position(enum skywatcher_axis axis, int32_t* position)
 {
     data_t buffer_out = {0};
     data_t value = {0};
-    threading_lock_critical_section(&_cs);
+    threading_critical_section_lock(&_cs);
     _skywatcher_execute(CMD_GET_AXIS_POSITION, axis, buffer_out);
     _skywatcher_get_buffer_out(value, buffer_out);
     *position = _skywatcher_convert_position_data(value);
     bool is_ok = skywatcher_check_error(buffer_out, "skywatcher_get_axis_position");
-    threading_unlock_critical_section(&_cs);
+    threading_critical_section_unlock(&_cs);
     return is_ok;
 }
 
@@ -589,10 +584,10 @@ bool skywatcher_set_goto_target(enum skywatcher_axis axis, int32_t target)
     sprintf(buffer, CMD_SET_GOTO_TARGET, axis);
     sprintf(value, "%x", target + POSITION_OFFSET);
     _skywatcher_put_buffer_to_buffer(buffer, value);
-    threading_lock_critical_section(&_cs);
+    threading_critical_section_lock(&_cs);
     _skywatcher_execute(buffer, SA_NONE, buffer_out);
     bool is_ok = skywatcher_check_error(buffer_out, "skywatcher_set_goto_target");
-    threading_unlock_critical_section(&_cs);
+    threading_critical_section_unlock(&_cs);
     return is_ok;
 }
 
@@ -600,11 +595,11 @@ bool skywatcher_get_goto_target(enum skywatcher_axis axis, int32_t* target)
 {
     data_t buffer_out = {0};
     data_t value = {0};
-    threading_lock_critical_section(&_cs);
+    threading_critical_section_lock(&_cs);
     _skywatcher_execute(CMD_GET_GOTO_TARGET, axis, buffer_out);
     _skywatcher_get_buffer_out(value, buffer_out);
     *target = _skywatcher_convert_position_data(value);
     bool is_ok = skywatcher_check_error(buffer_out, "skywatcher_get_goto_target");
-    threading_unlock_critical_section(&_cs);
+    threading_critical_section_unlock(&_cs);
     return is_ok;
 }
