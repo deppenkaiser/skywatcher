@@ -352,7 +352,7 @@ bool skywatcher_open(const char* ip)
 {
     bool connected = false;
     threading_critical_section_initialize(&_cs);
-    _socket = socket_create_socket(1, false);
+    _socket = socket_create(1, false);
     if (socket_ping(ip))
     {
         // socket_connect does not return false, if the host is not reacheable!?
