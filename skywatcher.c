@@ -352,7 +352,7 @@ bool skywatcher_open(const char* ip)
 {
     bool connected = false;
     threading_critical_section_initialize(&_cs);
-    _socket = socket_create_socket(1, false);
+    _socket = socket_create(1, false);
     if (socket_ping(ip))
     {
         // socket_connect does not return false, if the host is not reacheable!?
@@ -401,47 +401,24 @@ bool skywatcher_set_ra_siderial_speed()
     return is_ok;
 }
 
-bool skywatcher_set_axis_1_speed_and_start(double w_deg_per_s)
+bool skywatcher_set_axis_speed_and_start(double w_deg_per_s, enum skywatcher_axis axis)
 {
     bool is_ok = false;
 
-    if (skywatcher_set_speed(SA_AXIS_1, fabs(w_deg_per_s)))
+    if (skywatcher_set_speed(axis, fabs(w_deg_per_s)))
     {
-        static int32_t last_direction = -1;
+        static int32_t last_direction[3] = {-1};
         bool direction = w_deg_per_s < 0.0;
-        if ((last_direction == -1) || (last_direction != direction ? 1 : 0))
+        if ((last_direction[axis] == -1) || (last_direction[axis] != direction ? 1 : 0))
         {
             skywatcher_set_motion_mode(SA_AXIS_1, true, false, direction, false);
-            last_direction = direction ? 1 : 0;
+            last_direction[axis] = direction ? 1 : 0;
         }
-        is_ok = skywatcher_start_motion(SA_AXIS_1);
+        is_ok = skywatcher_start_motion(axis);
     }
     else
     {
-        is_ok = skywatcher_stop_motion(SA_AXIS_1);
-    }
-
-    return is_ok;
-}
-
-bool skywatcher_set_axis_2_speed_and_start(double w_deg_per_s)
-{
-    bool is_ok = false;
-
-    if (skywatcher_set_speed(SA_AXIS_2, fabs(w_deg_per_s)))
-    {
-        static int32_t last_direction = -1;
-        bool direction = w_deg_per_s < 0.0;
-        if ((last_direction == -1) || (last_direction != direction ? 1 : 0))
-        {
-            skywatcher_set_motion_mode(SA_AXIS_2, true, false, direction, false);
-            last_direction = direction ? 1 : 0;
-        }
-        is_ok = skywatcher_start_motion(SA_AXIS_2);
-    }
-    else
-    {
-        is_ok = skywatcher_stop_motion(SA_AXIS_2);
+        is_ok = skywatcher_stop_motion(axis);
     }
 
     return is_ok;
