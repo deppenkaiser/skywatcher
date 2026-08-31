@@ -482,12 +482,12 @@ bool skywatcher_get_axis_status(enum skywatcher_axis axis, skywatcher_axis_statu
     char db_1 = buffer_out[1];
     char db_2 = buffer_out[2];
     char db_3 = buffer_out[3];
-    status->mode = (db_1 & BIT_0) > 0 ? SM_TRACKING : SM_GOTO;
-    status->direction = (db_1 & BIT_1) > 0 ? SD_CCW : SD_CW;
-    status->init_state = (db_1 & BIT_2) > 0 ? SSM_FAST : SSM_SLOW;
-    status->action = (db_2 && BIT_0) > 0 ? SAA_RUNNING : SAA_STOPPED;
-    status->axis_state = (db_2 && BIT_1) > 0 ? SAS_BLOCKED : SAS_NORMAL;
-    status->init_state = (db_3 && BIT_0) > 0 ? SIS_DONE : SIS_NOT_INIT;
+    status->mode = (db_1 & BIT_0) != 0 ? SM_TRACKING : SM_GOTO;
+    status->direction = (db_1 & BIT_1) != 0 ? SD_CCW : SD_CW;
+    status->speed = (db_1 & BIT_2) != 0 ? SSM_FAST : SSM_SLOW;
+    status->action = (db_2 & BIT_0) != 0 ? SAA_RUNNING : SAA_STOPPED;
+    status->axis_state = (db_2 & BIT_1) != 0 ? SAS_BLOCKED : SAS_NORMAL;
+    status->init_state = (db_3 & BIT_0) != 0 ? SIS_DONE : SIS_NOT_INIT;
     threading_critical_section_unlock(&_cs);
     return is_ok;
 }
