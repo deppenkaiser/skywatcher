@@ -1,6 +1,6 @@
-# skywatcher – Sky-Watcher Montungs-Steuerung
+# skywatcher – Sky-Watcher Montierungs-Steuerung
 
-C-Bibliothek zur Steuerung von Sky-Watcher GoTo-Montungen über die
+C-Bibliothek zur Steuerung von Sky-Watcher GoTo-Montierungen über die
 Serialschnittstelle (TCP/IP). Bietet Initialisierung, Positionierung,
 Goto, Tracking und Geschwindigkeitssteuerung für beide Achsen.
 
@@ -59,7 +59,7 @@ Einbindung des Headers über den Include-Pfad `<skywatcher/skywatcher.h>`.
 ## Tests
 
 Test-App `tests/` (führt die öffentliche API aus, ohne Test-Framework).
-Ohne angeschlossene Montung wird der Hardware-Teil übersprungen:
+Ohne angeschlossene Montierung wird der Hardware-Teil übersprungen:
 
 ```bash
 cmake -S tests -B tests/build
@@ -69,4 +69,4 @@ cmake --build tests/build
 
 ## Wiki
 
-Dokumentation: [skywatcher – Sky-Watcher Montungs-Steuerung](https://czybor.i234.me/wiki/sw-module/skywatcher/) (Quartz-Wiki)
+Dokumentation: [skywatcher – Sky-Watcher Montierungs-Steuerung](https://czybor.i234.me/wiki/sw-module/skywatcher/) (Quartz-Wiki)

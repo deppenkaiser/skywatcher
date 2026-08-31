@@ -11,7 +11,7 @@
 #include <physics/physics.h>
 
 /*
- * Steuerung einer Sky-Watcher GoTo-Montung über das Sky-Watcher
+ * Steuerung einer Sky-Watcher GoTo-Montierung über das Sky-Watcher
  * Motor-Controller-Protokoll (TCP/IP, Standard-Port 11880).
  *
  * Das Protokoll ist ein zeilenbasiertes Telegramm-Format, bei dem jeder

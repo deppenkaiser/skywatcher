@@ -6,7 +6,7 @@
  *   0  – alle Aufrufe ausgeführt bzw. korrekt übersprungen (kein Mount erreichbar)
  *   1  – ein Test ist fehlgeschlagen
  *
- * Ohne angeschlossene Montung (skywatcher_open == false) werden die
+ * Ohne angeschlossene Montierung (skywatcher_open == false) werden die
  * Netzwerk-Funktionen nicht ausgeführt und als "SKIPPED" gemeldet.
  */
 
