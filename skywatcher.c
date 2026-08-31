@@ -54,7 +54,7 @@
 #define CMD_STOP_MOTION         ":K%d\r"
 #define CMD_SET_GOTO_TARGET     ":S%dxxxxxx\r"
 #define CMD_GET_GOTO_TARGET     ":h%d\r"
-#define CMD_SET_AUX             ":O%d\r"
+#define CMD_SET_AUX             ":O%d%d\r"
 
 protected_import(void, _skywatcher_execute(char* command, enum skywatcher_axis axis, data_t buffer_out));
 protected_import(void, _skywatcher_execute_with_param_1(char* command, enum skywatcher_axis axis, uint32_t value_1, data_t buffer_in, data_t buffer_out));
@@ -452,7 +452,7 @@ bool skywatcher_set_aux(enum skywatcher_axis axis, bool on)
 {
     data_t buffer_in = {0}, buffer_out = {0};
     threading_critical_section_lock(&_cs);
-    _skywatcher_execute_with_param_1(CMD_SET_AUX, axis, on ? '1' : '0', buffer_in, buffer_out);
+    _skywatcher_execute_with_param_1(CMD_SET_AUX, axis, on ? 1 : 0, buffer_in, buffer_out);
     bool is_ok = skywatcher_check_error(buffer_out, "skywatcher_set_aux");
     threading_critical_section_unlock(&_cs);
     return is_ok;

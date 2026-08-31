@@ -16,7 +16,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define TEST_IP "192.168.4.1"
+#include <threading/threading.h>
+
+#define TEST_IP "192.168.178.37"
 
 static int g_failures = 0;
 static int g_checks = 0;
@@ -67,6 +69,43 @@ static void test_axis_status(void)
         (status.axis_state == SAS_NORMAL) || (status.axis_state == SAS_BLOCKED));
     report("Init-State ist ein gültiger skywatcher_init_state-Wert",
         (status.init_state == SIS_NOT_INIT) || (status.init_state == SIS_DONE));
+}
+
+static bool wait_axis_stopped(enum skywatcher_axis axis, int timeout_s)
+{
+    struct skywatcher_axis_status status = {0};
+    for (int i = 0; i < timeout_s * 10; i++)
+    {
+        skywatcher_get_axis_status(axis, &status);
+        if (status.action == SAA_STOPPED)
+            return true;
+        threading_thread_sleep(TTR_MILLI, 100);
+    }
+    return false;
+}
+
+static void test_goto_motion(void)
+{
+    printf("Test: Goto-Bewegung (45° → 0° → -45° → 0°)\n");
+
+    const double angles[] = {45.0, 0.0, -45.0, 0.0};
+    const int steps = sizeof(angles) / sizeof(angles[0]);
+
+    for (int i = 0; i < steps; i++)
+    {
+        printf("  → %.0f° ...\n", angles[i]);
+        skywatcher_goto_deg(SA_AXIS_1, angles[i]);
+        skywatcher_goto_deg(SA_AXIS_2, angles[i]);
+
+        bool a1 = wait_axis_stopped(SA_AXIS_1, 60);
+        bool a2 = wait_axis_stopped(SA_AXIS_2, 60);
+
+        char name[64];
+        snprintf(name, sizeof(name), "Achse 1 bei %.0f° gestoppt", angles[i]);
+        report(name, a1);
+        snprintf(name, sizeof(name), "Achse 2 bei %.0f° gestoppt", angles[i]);
+        report(name, a2);
+    }
 }
 
 int main(void)
@@ -120,6 +159,11 @@ int main(void)
         skywatcher_goto_home(SA_AXIS_1, true);
         skywatcher_goto_deg(SA_AXIS_2, 45.0);
 
+        test_goto_motion();
+
+        printf("\nStoppe Montierung...\n");
+        skywatcher_instant_stop(SA_AXIS_1);
+        skywatcher_instant_stop(SA_AXIS_2);
         skywatcher_close();
     }
 
