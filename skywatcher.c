@@ -383,6 +383,15 @@ void skywatcher_close()
     threading_critical_section_destroy(&_cs);
 }
 
+bool skywatcher_discover(char* ip, size_t ip_size)
+{
+    char own_ip[64] = {0};
+    socket_get_own_ip(own_ip, sizeof(own_ip));
+
+    // Sky-Watcher-Discovery: UDP-Broadcast des Telegramms ':' auf Port 11880
+    return socket_udp_broadcast("255.255.255.255", 11880, ":\r", 2, own_ip[0] ? own_ip : NULL, ip, ip_size);
+}
+
 bool skywatcher_initialize_axis()
 {
     bool is_ok = false;

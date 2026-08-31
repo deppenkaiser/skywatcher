@@ -114,12 +114,26 @@ int main(void)
 
     test_enums_and_types();
 
+    printf("\nTest: Verbindung (skywatcher_discover)\n");
+    char discovered_ip[64] = {0};
+    bool discovered = skywatcher_discover(discovered_ip, sizeof(discovered_ip));
+
+    if (discovered)
+    {
+        printf("  [PASS] Montierung unter %s entdeckt\n", discovered_ip);
+    }
+    else
+    {
+        printf("  [SKIP] Keine Montierung per UDP-Broadcast gefunden – Fallback auf %s\n", TEST_IP);
+        snprintf(discovered_ip, sizeof(discovered_ip), "%s", TEST_IP);
+    }
+
     printf("\nTest: Verbindung (skywatcher_open)\n");
-    bool connected = skywatcher_open(TEST_IP);
+    bool connected = skywatcher_open(discovered_ip);
 
     if (!connected)
     {
-        printf("  [SKIP] Kein Mount unter %s erreichbar – Hardware-Tests übersprungen\n", TEST_IP);
+        printf("  [SKIP] Kein Mount unter %s erreichbar – Hardware-Tests übersprungen\n", discovered_ip);
     }
     else
     {

@@ -7,6 +7,7 @@ Goto, Tracking und Geschwindigkeitssteuerung für beide Achsen.
 ## Umfang
 
 - Verbindungsaufbau/Termination (`skywatcher_open`, `skywatcher_close`)
+- Automatische Gerätesuche per UDP-Broadcast (`skywatcher_discover`)
 - Achsen-Initialisierung und Kalibrierung (`skywatcher_initialize_axis`)
 - Positionierung: `skywatcher_get_position`, `skywatcher_set_position`,
   `skywatcher_get_axis_position`
@@ -27,8 +28,10 @@ Goto, Tracking und Geschwindigkeitssteuerung für beide Achsen.
 
 int main(void)
 {
-    if (skywatcher_open("192.168.1.100"))
+    char ip[64] = {0};
+    if (skywatcher_discover(ip, sizeof(ip)))
     {
+        skywatcher_open(ip);
         skywatcher_initialize_axis();
         skywatcher_goto_deg(SA_AXIS_1, 45.0);
         // ...

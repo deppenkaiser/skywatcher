@@ -2,12 +2,14 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <stddef.h>
 
 #include "types.h"
 
 
 bool skywatcher_open(const char* ip);
 void skywatcher_close();
+bool skywatcher_discover(char* ip, size_t ip_size);
 bool skywatcher_initialize_axis();
 bool skywatcher_start_motion(enum skywatcher_axis axis);
 bool skywatcher_stop_motion(enum skywatcher_axis axis);
