@@ -1,4 +1,4 @@
-#include "types.h"
+#include "skywatcher/types.h"
 
 #include <stdbool.h>
 #include <stdint.h>

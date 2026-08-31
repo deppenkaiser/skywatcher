@@ -4,7 +4,6 @@
 #include <ctype.h>
 #include <math.h>
 #include <logging/logging.h>
-#include <gst/gst.h>
 #include <api/api.h>
 #include <threading/threading.h>
 #include <socket/socket.h>

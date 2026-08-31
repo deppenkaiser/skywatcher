@@ -5,6 +5,7 @@
 
 #include "types.h"
 
+
 bool skywatcher_open(const char* ip);
 void skywatcher_close();
 bool skywatcher_initialize_axis();
