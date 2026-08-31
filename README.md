@@ -53,6 +53,17 @@ cmake --build build
 In ein Projekt einbinden: `add_subdirectory(../../libraries/skywatcher …)`,
 Einbindung des Headers über den Include-Pfad `<skywatcher/skywatcher.h>`.
 
+## Tests
+
+Test-App `tests/` (führt die öffentliche API aus, ohne Test-Framework).
+Ohne angeschlossene Montung wird der Hardware-Teil übersprungen:
+
+```bash
+cmake -S tests -B tests/build
+cmake --build tests/build
+./tests/build/bin/skywatcher_tests
+```
+
 ## Wiki
 
 Dokumentation: [skywatcher – Sky-Watcher Montungs-Steuerung](https://czybor.i234.me/wiki/sw-module/skywatcher/) (Quartz-Wiki)
