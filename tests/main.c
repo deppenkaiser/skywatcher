@@ -18,8 +18,6 @@
 
 #include <threading/threading.h>
 
-#define TEST_IP "192.168.178.37"
-
 static int g_failures = 0;
 static int g_checks = 0;
 
@@ -124,16 +122,15 @@ int main(void)
     }
     else
     {
-        printf("  [SKIP] Keine Montierung per UDP-Broadcast gefunden – Fallback auf %s\n", TEST_IP);
-        snprintf(discovered_ip, sizeof(discovered_ip), "%s", TEST_IP);
+        printf("  [SKIP] Keine Montierung per UDP-Broadcast gefunden – Hardware-Tests übersprungen\n");
     }
 
     printf("\nTest: Verbindung (skywatcher_open)\n");
-    bool connected = skywatcher_open(discovered_ip);
+    bool connected = discovered ? skywatcher_open(discovered_ip) : false;
 
     if (!connected)
     {
-        printf("  [SKIP] Kein Mount unter %s erreichbar – Hardware-Tests übersprungen\n", discovered_ip);
+        printf("  [SKIP] Kein Mount erreichbar – Hardware-Tests übersprungen\n");
     }
     else
     {
