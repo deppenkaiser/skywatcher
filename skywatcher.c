@@ -6,6 +6,9 @@
 #include <math.h>
 #include <logging/logging.h>
 #include <api/api.h>
+
+#define MODULE_ID "SKYWATCHER"
+
 #include <threading/threading.h>
 #include <socket/socket.h>
 #include <physics/physics.h>
@@ -95,7 +98,7 @@ private bool skywatcher_check_error(data_t buffer_out, const char* function_name
         return true;
     }
 
-    printf("skywatcher error: %s, %s\n", function_name, _skywatcher_error_code_to_string(buffer_out[1]));
+    LOG(MODULE_ID, "skywatcher error: %s, %s", function_name, _skywatcher_error_code_to_string(buffer_out[1]));
     return false;
 }
 
@@ -154,7 +157,7 @@ private void* _skywatcher_mount_thread(void* data)
     struct skywatcher_axis_status* axis_status = (axis == SA_AXIS_1) ? &_status->axis_status_1 : &_status->axis_status_2;
     struct skywatcher_axis_status last_status = {0};
 
-    logging_log_message("mount thread axis started.");
+    LOG(MODULE_ID, "mount thread axis started.");
 
     while (_exit_thread == false)
     {
@@ -163,7 +166,7 @@ private void* _skywatcher_mount_thread(void* data)
         threading_thread_sleep(TTR_MILLI, 100);
     }
 
-    logging_log_message("mount thread axis stoped.");
+    LOG(MODULE_ID, "mount thread axis stoped.");
     return NULL;
 }
 
@@ -344,7 +347,7 @@ void skywatcher_goto_deg(enum skywatcher_axis axis, double degree)
     skywatcher_start_motion(axis);
     char buffer[256] = {0};
     sprintf(buffer, "axis %d goto: %.2f", axis, degree);
-    logging_log_message(buffer);
+    LOG(MODULE_ID, buffer);
 }
 
 void skywatcher_start_thread(skywatcher_status_t status, void* user_data)
@@ -558,7 +561,7 @@ bool skywatcher_set_position(enum skywatcher_axis axis, int32_t position)
     {
         char string[256] = {0};
         sprintf(string, "position axis %d: %d", axis, position);
-        logging_log_message(string);
+        LOG(MODULE_ID, string);
     }
     threading_critical_section_unlock(&_cs);
     return is_ok;
