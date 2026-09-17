@@ -65,19 +65,19 @@ protected_import(void, _skywatcher_execute_with_param_2(char* command, enum skyw
 
 protected_import(socket_handle_t, _socket);
 
-private uint32_t _timer_frequency = 0;
-private uint32_t _cpr[3] = {0};
-private double _siderial_w_deg_per_s = 0.0;
-private double _siderial_w_error_1_level_deg_per_s = 0.0;
-private double _siderial_w_error_2_level_deg_per_s = 0.0;
-private double _max_exposure_time_s = 0.0;
-private pthread_t _thread_handle_axis_1 = THREADING_INVALID_THREADHANDLE;
-private pthread_t _thread_handle_axis_2 = THREADING_INVALID_THREADHANDLE;
-private bool _exit_thread = false;
-private skywatcher_status_t _status;
+static uint32_t _timer_frequency = 0;
+static uint32_t _cpr[3] = {0};
+static double _siderial_w_deg_per_s = 0.0;
+static double _siderial_w_error_1_level_deg_per_s = 0.0;
+static double _siderial_w_error_2_level_deg_per_s = 0.0;
+static double _max_exposure_time_s = 0.0;
+static pthread_t _thread_handle_axis_1 = THREADING_INVALID_THREADHANDLE;
+static pthread_t _thread_handle_axis_2 = THREADING_INVALID_THREADHANDLE;
+static bool _exit_thread = false;
+static skywatcher_status_t _status;
 protected threading_critical_section _cs = {0};
 
-private const char* _skywatcher_error_code_to_string(char code)
+static const char* _skywatcher_error_code_to_string(char code)
 {
     switch (code)
     {
@@ -91,7 +91,7 @@ private const char* _skywatcher_error_code_to_string(char code)
     }
 }
 
-private bool skywatcher_check_error(data_t buffer_out, const char* function_name)
+static bool skywatcher_check_error(data_t buffer_out, const char* function_name)
 {
     if (buffer_out[0] != '!')
     {
@@ -108,7 +108,7 @@ private bool skywatcher_check_error(data_t buffer_out, const char* function_name
 #define MOTION_CCW      0x04
 #define MOTION_SOUTH    0x08
 
-private bool skywatcher_set_motion_mode(enum skywatcher_axis axis, uint8_t mode_bits)
+static bool skywatcher_set_motion_mode(enum skywatcher_axis axis, uint8_t mode_bits)
 {
     data_t buffer_in = {0}, buffer_out = {0};
     uint32_t param_1 = BIT_2 | (mode_bits & MOTION_FAST ? BIT_1 : 0) | (mode_bits & MOTION_TRACKING ? BIT_0 : 0);
@@ -120,7 +120,7 @@ private bool skywatcher_set_motion_mode(enum skywatcher_axis axis, uint8_t mode_
     return is_ok;
 }
 
-private void _skywatcher_trigger_goto_callback(enum skywatcher_axis axis, enum skywatcher_mode last_mode, struct skywatcher_axis_status* last_status)
+static void _skywatcher_trigger_goto_callback(enum skywatcher_axis axis, enum skywatcher_mode last_mode, struct skywatcher_axis_status* last_status)
 {
     if ((_status->axis_status_1.mode != last_mode) && (last_mode == SM_GOTO))
     {
@@ -133,7 +133,7 @@ private void _skywatcher_trigger_goto_callback(enum skywatcher_axis axis, enum s
     }
 }
 
-private void _skywatcher_update_position(enum skywatcher_axis axis, struct skywatcher_axis_status* axis_status)
+static void _skywatcher_update_position(enum skywatcher_axis axis, struct skywatcher_axis_status* axis_status)
 {
     int32_t position = 0;
     skywatcher_get_position(axis, &position);
@@ -151,7 +151,7 @@ private void _skywatcher_update_position(enum skywatcher_axis axis, struct skywa
     skywatcher_get_axis_status(axis, axis_status);
 }
 
-private void* _skywatcher_mount_thread(void* data)
+static void* _skywatcher_mount_thread(void* data)
 {
     enum skywatcher_axis axis = (enum skywatcher_axis)(intptr_t) data;
     struct skywatcher_axis_status* axis_status = (axis == SA_AXIS_1) ? &_status->axis_status_1 : &_status->axis_status_2;
@@ -170,7 +170,7 @@ private void* _skywatcher_mount_thread(void* data)
     return NULL;
 }
 
-private void _skywatcher_get_buffer_out(data_t value, data_t buffer_out)
+static void _skywatcher_get_buffer_out(data_t value, data_t buffer_out)
 {
     value[4] = buffer_out[1];
     value[5] = buffer_out[2];
@@ -180,13 +180,13 @@ private void _skywatcher_get_buffer_out(data_t value, data_t buffer_out)
     value[1] = buffer_out[6];
 }
 
-private int32_t _skywatcher_convert_data(data_t value)
+static int32_t _skywatcher_convert_data(data_t value)
 {
     char* endptr = NULL;
     return strtol(value, &endptr, 16);
 }
 
-private void _skywatcher_put_buffer_to_buffer(data_t out, data_t in)
+static void _skywatcher_put_buffer_to_buffer(data_t out, data_t in)
 {
     out[3] = toupper(in[4]);
     out[4] = toupper(in[5]);
@@ -196,7 +196,7 @@ private void _skywatcher_put_buffer_to_buffer(data_t out, data_t in)
     out[8] = toupper(in[1]);
 }
 
-private void _skywatcher_speed_to_preset(data_t preset_out, enum skywatcher_axis axis, double angular_speed_degrees_per_s)
+static void _skywatcher_speed_to_preset(data_t preset_out, enum skywatcher_axis axis, double angular_speed_degrees_per_s)
 {
     double counts_per_s = angular_speed_degrees_per_s * _cpr[axis] / 360.0;
     double preset = _timer_frequency / counts_per_s;
@@ -211,7 +211,7 @@ private void _skywatcher_speed_to_preset(data_t preset_out, enum skywatcher_axis
     }
 }
 
-private bool skywatcher_set_speed(enum skywatcher_axis axis, double angular_speed_degrees_per_s)
+static bool skywatcher_set_speed(enum skywatcher_axis axis, double angular_speed_degrees_per_s)
 {
     data_t buffer_in = {0}, buffer_out = {0};
     bool is_ok = false;
@@ -236,7 +236,7 @@ private bool skywatcher_set_speed(enum skywatcher_axis axis, double angular_spee
     return is_ok;
 }
 
-private void _skywatcher_calculate_siderial_angular_speed_deg_per_s()
+static void _skywatcher_calculate_siderial_angular_speed_deg_per_s()
 {
     double _siderial_w_real_degree_per_s = 0.0;
     _siderial_w_deg_per_s = 360.0 / SIDERIAL_DAY_S;
@@ -248,14 +248,14 @@ private void _skywatcher_calculate_siderial_angular_speed_deg_per_s()
     _siderial_w_error_2_level_deg_per_s = _siderial_w_deg_per_s - _siderial_w_real_degree_per_s;
 }
 
-private double _skywatcher_calculate_max_exposure_time_s(double pixel_size_um, double focal_length_mm)
+static double _skywatcher_calculate_max_exposure_time_s(double pixel_size_um, double focal_length_mm)
 {
     double phi_pixel_rad = atan2(pixel_size_um * 1.0e-3, focal_length_mm);
     double phi_pixel_deg = phi_pixel_rad / acos(-1) * 180.0;
     return fabs(phi_pixel_deg / _siderial_w_error_2_level_deg_per_s);
 }
 
-private bool _skywatcher_initialize_axis(enum skywatcher_axis axis)
+static bool _skywatcher_initialize_axis(enum skywatcher_axis axis)
 {
     data_t buffer_out = {0};
     threading_critical_section_lock(&_cs);
@@ -265,7 +265,7 @@ private bool _skywatcher_initialize_axis(enum skywatcher_axis axis)
     return is_ok;
 }
 
-private bool _skywatcher_get_motor_board_version(enum skywatcher_axis axis)
+static bool _skywatcher_get_motor_board_version(enum skywatcher_axis axis)
 {
     data_t buffer_out = {0};
     threading_critical_section_lock(&_cs);
@@ -275,7 +275,7 @@ private bool _skywatcher_get_motor_board_version(enum skywatcher_axis axis)
     return is_ok;
 }
 
-private bool _skywatcher_get_timer_frequency(uint32_t* frequency)
+static bool _skywatcher_get_timer_frequency(uint32_t* frequency)
 {
     data_t buffer_out = {0};
     data_t value = {0};
@@ -291,7 +291,7 @@ private bool _skywatcher_get_timer_frequency(uint32_t* frequency)
     return is_ok;
 }
 
-private bool _skywatcher_get_cpr(enum skywatcher_axis axis, uint32_t* cpr)
+static bool _skywatcher_get_cpr(enum skywatcher_axis axis, uint32_t* cpr)
 {
     data_t buffer_out = {0};
     data_t value = {0};
@@ -307,7 +307,7 @@ private bool _skywatcher_get_cpr(enum skywatcher_axis axis, uint32_t* cpr)
     return is_ok;
 }
 
-private bool _skywatcher_get_axis_status(enum skywatcher_axis axis, data_t buffer_out)
+static bool _skywatcher_get_axis_status(enum skywatcher_axis axis, data_t buffer_out)
 {
     threading_critical_section_lock(&_cs);
     _skywatcher_execute(CMD_STATUS, axis, buffer_out);
@@ -316,7 +316,7 @@ private bool _skywatcher_get_axis_status(enum skywatcher_axis axis, data_t buffe
     return is_ok;
 }
 
-private int32_t _skywatcher_convert_position_data(data_t value)
+static int32_t _skywatcher_convert_position_data(data_t value)
 {
     return _skywatcher_convert_data(value) - POSITION_OFFSET;
 }

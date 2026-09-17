@@ -13,7 +13,7 @@ protected_import(threading_critical_section, _cs);
 
 protected socket_handle_t _socket = SOCKET_INVALID_SOCKET;
 
-private void _skywatcher_telegram(data_t buffer_in, data_t buffer_out)
+static void _skywatcher_telegram(data_t buffer_in, data_t buffer_out)
 {
     threading_critical_section_lock(&_cs);
     for (uint32_t retry_send = 0; retry_send < 5; ++retry_send)
