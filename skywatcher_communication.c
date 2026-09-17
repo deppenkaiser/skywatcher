@@ -13,7 +13,48 @@ protected_import(threading_critical_section, _cs);
 
 protected socket_handle_t _socket = SOCKET_INVALID_SOCKET;
 
-static void _skywatcher_telegram(data_t buffer_in, data_t buffer_out)
+PRIVATE_FUNC(void, telegram(data_t buffer_in, data_t buffer_out));
+
+protected void _skywatcher_execute(char* command, enum skywatcher_axis axis, data_t buffer_out)
+{
+    data_t buffer_in = {0};
+    threading_critical_section_lock(&_cs);
+    memset(buffer_out, 0, sizeof(data_t));
+    if (axis != SA_NONE)
+    {
+        sprintf(buffer_in, command, axis);
+    }
+    else
+    {
+        memcpy(buffer_in, command, strlen(command));
+    }
+    _telegram(buffer_in, buffer_out);
+    threading_critical_section_unlock(&_cs);
+}
+
+protected void _skywatcher_execute_with_param_1(char* command, enum skywatcher_axis axis, uint32_t value_1, data_t buffer_in, data_t buffer_out)
+{
+    threading_critical_section_lock(&_cs);
+    memset(buffer_in, 0, sizeof(data_t));
+    memset(buffer_out, 0, sizeof(data_t));
+    sprintf(buffer_in, command, axis, value_1);
+    _telegram(buffer_in, buffer_out);
+    threading_critical_section_unlock(&_cs);
+}
+
+protected void _skywatcher_execute_with_param_2(char* command, enum skywatcher_axis axis, uint32_t value_1, uint32_t value_2, data_t buffer_in, data_t buffer_out)
+{
+    threading_critical_section_lock(&_cs);
+    memset(buffer_in, 0, sizeof(data_t));
+    memset(buffer_out, 0, sizeof(data_t));
+    sprintf(buffer_in, command, axis, value_1, value_2);
+    _telegram(buffer_in, buffer_out);
+    threading_critical_section_unlock(&_cs);
+}
+
+// private Functions
+
+static void _telegram(data_t buffer_in, data_t buffer_out)
 {
     threading_critical_section_lock(&_cs);
     for (uint32_t retry_send = 0; retry_send < 5; ++retry_send)
@@ -29,42 +70,5 @@ static void _skywatcher_telegram(data_t buffer_in, data_t buffer_out)
             }
         }
     }
-    threading_critical_section_unlock(&_cs);
-}
-
-protected void _skywatcher_execute(char* command, enum skywatcher_axis axis, data_t buffer_out)
-{
-    data_t buffer_in = {0};
-    threading_critical_section_lock(&_cs);
-    memset(buffer_out, 0, sizeof(data_t));
-    if (axis != SA_NONE)
-    {
-        sprintf(buffer_in, command, axis);
-    }
-    else
-    {
-        memcpy(buffer_in, command, strlen(command));
-    }
-    _skywatcher_telegram(buffer_in, buffer_out);
-    threading_critical_section_unlock(&_cs);
-}
-
-protected void _skywatcher_execute_with_param_1(char* command, enum skywatcher_axis axis, uint32_t value_1, data_t buffer_in, data_t buffer_out)
-{
-    threading_critical_section_lock(&_cs);
-    memset(buffer_in, 0, sizeof(data_t));
-    memset(buffer_out, 0, sizeof(data_t));
-    sprintf(buffer_in, command, axis, value_1);
-    _skywatcher_telegram(buffer_in, buffer_out);
-    threading_critical_section_unlock(&_cs);
-}
-
-protected void _skywatcher_execute_with_param_2(char* command, enum skywatcher_axis axis, uint32_t value_1, uint32_t value_2, data_t buffer_in, data_t buffer_out)
-{
-    threading_critical_section_lock(&_cs);
-    memset(buffer_in, 0, sizeof(data_t));
-    memset(buffer_out, 0, sizeof(data_t));
-    sprintf(buffer_in, command, axis, value_1, value_2);
-    _skywatcher_telegram(buffer_in, buffer_out);
     threading_critical_section_unlock(&_cs);
 }
