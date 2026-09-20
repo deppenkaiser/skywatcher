@@ -75,7 +75,7 @@ static pthread_t _thread_handle_axis_1 = THREADING_INVALID_THREADHANDLE;
 static pthread_t _thread_handle_axis_2 = THREADING_INVALID_THREADHANDLE;
 static bool _exit_thread = false;
 static skywatcher_status_t _status;
-protected threading_critical_section _cs = {0};
+threading_critical_section _cs = {0};
 
 PRIVATE_FUNC(const char*, error_code_to_string(char code));
 PRIVATE_FUNC(bool, check_error(data_t buffer_out, const char* function_name));
