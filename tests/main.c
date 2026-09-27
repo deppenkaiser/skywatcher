@@ -10,7 +10,7 @@
  * Netzwerk-Funktionen nicht ausgeführt und als "SKIPPED" gemeldet.
  */
 
-#include <skywatcher/skywatcher.h>
+#include "skywatcher/skywatcher.h"
 
 #include <stdio.h>
 #include <stdlib.h>
