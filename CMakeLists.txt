@@ -9,12 +9,12 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 add_library(skywatcher STATIC)
-add_subdirectory(../logging ${CMAKE_BINARY_DIR}/logging_from_skywatcher)
-add_subdirectory(../threading ${CMAKE_BINARY_DIR}/threading_from_skywatcher)
-add_subdirectory(../string ${CMAKE_BINARY_DIR}/string_from_skywatcher)
-add_subdirectory(../api ${CMAKE_BINARY_DIR}/api_from_skywatcher)
-add_subdirectory(../socket ${CMAKE_BINARY_DIR}/socket_from_skywatcher)
-add_subdirectory(../physics ${CMAKE_BINARY_DIR}/physics_from_skywatcher)
+add_subdirectory(../logging ${CMAKE_BINARY_DIR}/libs_build/logging_from_skywatcher)
+add_subdirectory(../threading ${CMAKE_BINARY_DIR}/libs_build/threading_from_skywatcher)
+add_subdirectory(../string ${CMAKE_BINARY_DIR}/libs_build/string_from_skywatcher)
+add_subdirectory(../api ${CMAKE_BINARY_DIR}/libs_build/api_from_skywatcher)
+add_subdirectory(../socket ${CMAKE_BINARY_DIR}/libs_build/socket_from_skywatcher)
+add_subdirectory(../physics ${CMAKE_BINARY_DIR}/libs_build/physics_from_skywatcher)
 
 target_sources(skywatcher PRIVATE
 	skywatcher.c

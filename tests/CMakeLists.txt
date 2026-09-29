@@ -9,7 +9,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 add_executable(skywatcher_tests)
 
-add_subdirectory(../ ${CMAKE_BINARY_DIR}/skywatcher)
+add_subdirectory(../ ${CMAKE_BINARY_DIR}/libs_build/skywatcher)
 
 target_sources(skywatcher_tests PRIVATE
 	main.c
